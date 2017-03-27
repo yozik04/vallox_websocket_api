@@ -8,6 +8,5 @@ setup(
   license='LGPL 3',
   author='yozik04',
   author_email='yozik04@gmail.com',
-  description='Vallox WebSocket client',
-  requires=['numpy', 'websocket-client']
+  description='Vallox WebSocket client'
 )

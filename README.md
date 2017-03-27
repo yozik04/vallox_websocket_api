@@ -46,9 +46,7 @@ Code uses next libraries
 
 # Installation
 
-```
-pip install https://github.com/yozik04/vallox_websocket_api
-```
+    pip install git+https://github.com/yozik04/vallox_websocket_api
 
 # Usage
 
@@ -86,6 +84,7 @@ pprint(metrics)
 
 ## Available Metrics
 
+Basically all that you can get via Modbus connection
 ```
  'A_CYC_12_HOUR_CLOCK_ENABLED': 0,
  'A_CYC_ACCESS_LEVEL': 0,
