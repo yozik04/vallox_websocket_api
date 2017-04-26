@@ -50,8 +50,9 @@ Code uses next libraries
 
 # Usage
 
-Straight forward
+Reading metrics and setting values
 
+## Reading Metrics
 ```python
 
 from vallox_websocket_api import Client
@@ -80,6 +81,17 @@ metrics = client.fetch_metrics([
 
 from pprint import pprint
 pprint(metrics)
+```
+
+## Setting values
+
+Textual values will be converted to integers before sending to the unit
+
+```python
+from vallox_websocket_api import Client
+
+client = Client('192.168.9.106')
+client.set_values({'A_CYC_STATE': 'C_CYC_STATE_HOME'})
 ```
 
 ## Available Metrics
@@ -932,6 +944,3 @@ Basically all that you can get via Modbus connection
  'WS_WEB_UI_DATA_TABLE_BOUNDARY_ERROR': 0}
  ```
 
-# Future plans
-
-* Fully control the unit with this API
