@@ -91,7 +91,36 @@ Textual values will be converted to integers before sending to the unit
 from vallox_websocket_api import Client
 
 client = Client('192.168.9.106')
-client.set_values({'A_CYC_STATE': 'C_CYC_STATE_HOME'})
+
+# Setting At home profile
+client.set_values({
+  'A_CYC_STATE': 0,
+  'A_CYC_BOOST_TIMER': 0,
+  'A_CYC_FIREPLACE_TIMER': 0,
+  'A_CYC_EXTRA_TIMER': 0
+})
+
+# Setting Away profile
+client.set_values({
+  'A_CYC_STATE': 1,
+  'A_CYC_BOOST_TIMER': 0,
+  'A_CYC_FIREPLACE_TIMER': 0,
+  'A_CYC_EXTRA_TIMER': 0
+})
+
+# Setting Boost profile
+client.set_values({
+  'A_CYC_BOOST_TIMER': 30, #Minutes
+  'A_CYC_FIREPLACE_TIMER': 0,
+  'A_CYC_EXTRA_TIMER': 0
+})
+
+# Setting Fireplace profile
+client.set_values({
+  'A_CYC_FIREPLACE_TIMER': 15, #Minutes
+  'A_CYC_BOOST_TIMER': 0,
+  'A_CYC_EXTRA_TIMER': 0
+})
 ```
 
 ## Available Metrics
