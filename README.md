@@ -944,3 +944,5 @@ Basically all that you can get via Modbus connection
  'WS_WEB_UI_DATA_TABLE_BOUNDARY_ERROR': 0}
  ```
 
+# Reading
+* https://www.vallox.com/files/1092/Modbus-instructions_ENG-250915.pdf
