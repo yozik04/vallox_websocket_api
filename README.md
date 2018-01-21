@@ -3,6 +3,7 @@
 Python version of WebSocket API for Vallox ventilation units
 
 Current code can:
+* Set unit profile
 * Fetch and decode metrics
 
 # Requirements
@@ -49,6 +50,27 @@ Code uses next libraries
     pip install git+https://github.com/yozik04/vallox_websocket_api
 
 # Usage
+
+Changing unit profile and reading metrics
+
+## Profile control:
+
+```python
+from vallox_websocket_api import Vallox, PROFILE;
+client = Vallox('192.168.1.10'); # Vallox unit IP
+
+client.get_profile(); # RETURNS a PROFILE.* value
+client.set_profile(PROFILE.HOME); # Permanently HOME profile
+client.set_profile(PROFILE.AWAY); # Permanently AWAY profile
+client.set_profile(PROFILE.FIREPLACE); # FIREPLACE mode for configured timeout
+client.set_profile(PROFILE.FIREPLACE, 120); # FIREPLACE mode for 120 min
+client.set_profile(PROFILE.FIREPLACE, 65535); # FIREPLACE mode, never TIMEOUT
+client.set_profile(PROFILE.EXTRA); # EXTRA mode for configured timeout
+client.set_profile(PROFILE.EXTRA, 120); # EXTRA mode for 120 min
+client.set_profile(PROFILE.EXTRA, 65535); # EXTRA mode, never TIMEOUT
+```
+
+## Metrics
 
 Reading metrics and setting values
 
@@ -123,7 +145,9 @@ client.set_values({
 })
 ```
 
-## Available Metrics
+## Details
+
+### Available Metrics
 
 Basically all that you can get via Modbus connection
 ```
@@ -971,24 +995,6 @@ Basically all that you can get via Modbus connection
  'WS_WEB_UI_DATA_RW_ERROR': 0,
  'WS_WEB_UI_DATA_SEND_REPLY': 0,
  'WS_WEB_UI_DATA_TABLE_BOUNDARY_ERROR': 0}
- ```
-
-High level API:
----------------
-
- ```
-from vallox_websocket_api.vallox import Vallox, PROFILE;
-client = Vallox('192.168.1.1');
-
-client.get_profile(); # RETURNS a PROFILE.* value
-client.set_profile(PROFILE.HOME); # Permanently HOME profile
-client.set_profile(PROFILE.AWAY); # Permanently AWAY profile
-client.set_profile(PROFILE.FIREPLACE); # FIREPLACE mode for configured timeout
-client.set_profile(PROFILE.FIREPLACE, 120); # FIREPLACE mode for 120 min
-client.set_profile(PROFILE.FIREPLACE, 65535); # FIREPLACE mode, never TIMEOUT
-client.set_profile(PROFILE.EXTRA); # EXTRA mode for configured timeout
-client.set_profile(PROFILE.EXTRA, 120); # EXTRA mode for 120 min
-client.set_profile(PROFILE.EXTRA, 65535); # EXTRA mode, never TIMEOUT
  ```
 
 # Reading
