@@ -64,7 +64,7 @@ class Client:
       arr.append(0)
     else:
       dict = self._decode_dict(dict)
-      for k, v in dict.iteritems():
+      for k, v in dict.items():
         arr.append(k)
         arr.append(v)
 
@@ -80,7 +80,7 @@ class Client:
 
   def _decode_dict(self, dict):
     new_dict = {}
-    for k, v in dict.iteritems():
+    for k, v in dict.items():
       key = int(getattr(vlxDevConstants, k, k))
       value = int(getattr(vlxDevConstants, v, v))
       new_dict[key] = value
@@ -114,6 +114,9 @@ class Client:
       metrics[key] = value
 
     return metrics
+
+  def fetch_metric(self, metric_key):
+    return self.fetch_metrics([metric_key]).get(metric_key, None)
 
   def set_values(self, dict):
     self._websocket_request(dict=dict)
