@@ -2,7 +2,7 @@ import numpy
 import websocket
 from websocket import ABNF, WebSocketException
 
-from vallox_websocket_api.constants import vlxDevConstants, vlxOffsetObject
+from .constants import vlxDevConstants, vlxOffsetObject
 
 
 def calculate_offset(aIndex):
