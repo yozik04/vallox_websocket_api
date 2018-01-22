@@ -3,9 +3,9 @@ import sys
 from os import path as p
 
 try:
-    from setuptools import setup, find_packages
+    from setuptools import setup
 except ImportError:
-    from distutils.core import setup, find_packages
+    from distutils.core import setup
 
 
 def read(filename, parent=None):
@@ -34,12 +34,21 @@ def parse_requirements(filename, parent=None):
 
 setup(
   name='vallox_websocket_api',
-  version='0.3',
   packages=['vallox_websocket_api'],
+  version='1.0.0',
+  description='Vallox WebSocket API',
+  author='Jevgeni Kiski',
+  author_email='yozik04@gmail.com',
   url='https://github.com/yozik04/vallox_websocket_api',
   license='LGPL 3',
-  author='yozik04',
-  author_email='yozik04@gmail.com',
-  description='Vallox WebSocket client',
+  download_url='https://github.com/yozik04/vallox_websocket_api/archive/1.0.0.tar.gz',
+  keywords = ['vallox', 'api']
+  classifiers = [
+      'Development Status :: 5 - Production/Stable',
+      'Intended Audience :: Developers',
+      'Operating System :: OS Independent',
+      'Programming Language :: Python',
+      'Programming Language :: Python :: 3'
+  ],
   install_requires=list(parse_requirements('requirements.txt'))
 )
