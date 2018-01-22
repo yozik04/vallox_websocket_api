@@ -42,10 +42,11 @@ setup(
   url='https://github.com/yozik04/vallox_websocket_api',
   license='LGPL 3',
   download_url='https://github.com/yozik04/vallox_websocket_api/archive/1.0.0.tar.gz',
-  keywords = ['vallox', 'api'],
+  keywords = 'vallox api',
   classifiers = [
       'Development Status :: 5 - Production/Stable',
       'Intended Audience :: Developers',
+      'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
       'Operating System :: OS Independent',
       'Programming Language :: Python',
       'Programming Language :: Python :: 3'
