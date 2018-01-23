@@ -6,6 +6,8 @@ Current code can:
 * Set unit profile
 * Fetch and decode metrics
 
+[![Build Status](https://travis-ci.org/yozik04/vallox_websocket_api.svg?branch=master)](https://travis-ci.org/yozik04/vallox_websocket_api)
+
 # Requirements
 
 Your ventilation unit should be connected to LAN.
