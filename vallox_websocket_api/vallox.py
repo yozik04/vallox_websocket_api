@@ -3,13 +3,21 @@ from .client import Client
 
 import logging
 
-class PROFILE:
-    NONE = 0
-    HOME = 1
-    AWAY = 2
-    BOOST = 3
-    FIREPLACE = 4
-    EXTRA = 5
+
+def enum(*sequential, **named):
+  enums = dict(zip(sequential, range(len(sequential))), **named)
+  reverse = dict((value, key) for key, value in enums.items())
+  enums['reverse_mapping'] = reverse
+  return type('Enum', (), enums)
+
+PROFILE = enum(
+  NONE = 0,
+  HOME = 1,
+  AWAY = 2,
+  BOOST = 3,
+  FIREPLACE = 4,
+  EXTRA = 5
+)
 
 class Vallox(Client):
     def get_profile(self):
