@@ -82,7 +82,7 @@ class Client:
     new_dict = {}
     for k, v in dict.items():
       key = int(getattr(vlxDevConstants, k, k))
-      value = int(getattr(vlxDevConstants, v, v))
+      value = int(v)
       new_dict[key] = value
 
     return new_dict
@@ -94,7 +94,7 @@ class Client:
       ws.send(request, opcode=ABNF.OPCODE_BINARY)
       result = ws.recv()
       ws.close()
-      return numpy.fromstring(result, numpy.uint16).byteswap()
+      return numpy.frombuffer(result, numpy.uint16).byteswap()
     except WebSocketException as e:
       raise IOError('Websocket requiest failed: %s' % e.message)
 

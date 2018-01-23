@@ -35,7 +35,7 @@ def parse_requirements(filename, parent=None):
 setup(
   name='vallox_websocket_api',
   packages=['vallox_websocket_api'],
-  version='1.0.0',
+  version='1.1.0',
   description='Vallox WebSocket API',
   author='Jevgeni Kiski',
   author_email='yozik04@gmail.com',
@@ -51,5 +51,9 @@ setup(
       'Programming Language :: Python',
       'Programming Language :: Python :: 3'
   ],
-  install_requires=list(parse_requirements('requirements.txt'))
+  install_requires=list(parse_requirements('requirements.txt')),
+  tests_require=[
+    'mock',
+    'pytest'
+  ]
 )

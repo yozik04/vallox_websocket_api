@@ -1,2 +1,2 @@
-numpy
-websocket-client
+numpy >= 1.0.0, < 2.0.0
+websocket-client >= 0.32.0, < 1.0.0
