@@ -1,15 +1,20 @@
 language: python
 python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
-  - "3.6"
-  # PyPy versions
-  - "pypy"   # PyPy2 5.8.0
-  - "pypy3"  # Pypy3 5.8.0-beta0
-# command to install dependencies
+- '2.7'
+- '3.4'
+- '3.5'
+- '3.6'
+- pypy
+- pypy3
 install:
-  - pip install .
-  - pip install -r requirements.txt
-# command to run tests
+- pip install .
+- pip install -r requirements.txt
 script: python setup.py test
+deploy:
+  provider: pypi
+  user: yozik04
+  distributions: sdist
+  on:
+    tags: true
+  password:
+    secure: ottDVoNwYe+SjYRuaVDokSSF02JXRlZEJD9EI8qkRTntdSWflSHd3GHfjkYC47bb+/YVf0ZXx+qkrrXYZKCLuVoR461Fu0J+Co29KYc3fWEvqkaumN5s4o7vZy7pGOmZ5GAjgD8sN5CiD5hpAvPt4VjVO1bpmSEldsPHBjRi1eN/RWr7yI+uqXGp9vy8eFeEPvfSuixiozmR1b7nscI8llh71MCQeekpG3ujizWaA2RYe5lT8bMbZYUHCySaH0Yak1DEm8E8jP0wmJlCFj+LlYF+IGzWvrv4VBLPFSYWSA/1gCSo4ANuREDPfWmUhbS/+LjYCOQjbBZizb7YZp9R4U+vlXwtuHtTnKlUlQlF5kxqCZF7aBOY4QfxDV5ly2foVe051r1UVbX3eHsoFx26EkoujkFMv5HgzjIz3eBUSe7JsIdb+7ZzHg3KaJ7LgTiYiqwfJkH6jAn2q6CSq8qiOyQEqx0vnoISjH1u4VjwCd03u0ZLAmy+494YsHDosKd2KxcmI7RHcn/n4iqBpasPrakK8qv6RZtO3Tz5wRlFXSbOG3bW3rKOuUJhhXzm2A7zWWnVvgR4SAu0F8i0+zJSM+n9TsHLZQLjV0oT4IQ5BV8trmWIe5XgEn4ngCd5es4wWYUj1i5id2g9+mObFMDptAUJa8/780++g/YKDEtrefU=
