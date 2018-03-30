@@ -82,7 +82,10 @@ class Client:
     new_dict = {}
     for k, v in dict.items():
       key = int(getattr(vlxDevConstants, k, k))
-      value = int(v)
+      try:
+        value = int(v)
+      except ValueError as e:
+        value = float(v)
       new_dict[key] = value
 
     return new_dict
