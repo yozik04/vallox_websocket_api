@@ -33,3 +33,85 @@ class TestClient(TestCase):
     })
 
     ws.send.assert_called_once_with(binascii.unhexlify('0a00f900011200000412000005120000061200001349'), opcode=0x2)
+
+  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
+  def testSetAssertion(self, mock_websocket_create_connection):
+    client = Client('127.0.0.1')
+
+    ws = mock.Mock()
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+    mock_websocket_create_connection.return_value = ws
+
+    with self.assertRaises(AssertionError) as context:
+      client.set_values({
+        'A_CYC_BOOST_TIMER': '11.2'
+      })
+
+    with self.assertRaises(AssertionError) as context:
+      client.set_values({
+        'A_CYC_BOOST_AIR_TEMP_TARGET': '11.2'
+      })
+
+    with self.assertRaises(AssertionError) as context:
+      client.set_values({
+        'A_CYC_BOOST_SPEED_SETTING': '11.2'
+      })
+
+    with self.assertRaises(AssertionError) as context:
+      client.set_values({
+        'A_CYC_FIREPLACE_SUPP_FAN': '11.2'
+      })
+
+  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
+  def testSetMissing(self, mock_websocket_create_connection):
+    client = Client('127.0.0.1')
+
+    ws = mock.Mock()
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+    mock_websocket_create_connection.return_value = ws
+
+    with self.assertRaises(AttributeError) as context:
+      client.set_values({
+        'A_CYC_BOOSTER': 10
+      })
+
+  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
+  def testSetUnsettable(self, mock_websocket_create_connection):
+    client = Client('127.0.0.1')
+
+    ws = mock.Mock()
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+    mock_websocket_create_connection.return_value = ws
+
+    with self.assertRaises(AttributeError) as context:
+      client.set_values({
+        'A_CYC_RH_VALUE': '22'
+      })
+
+  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
+  def testSetNewSettableAddressByName(self, mock_websocket_create_connection):
+    client = Client('127.0.0.1')
+
+    ws = mock.Mock()
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+    mock_websocket_create_connection.return_value = ws
+
+    client.set_settable_address('A_CYC_RH_VALUE', int)
+
+    client.set_values({
+      'A_CYC_RH_VALUE': 22
+    })
+
+  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
+  def testSetNewSettableAddressByAddress(self, mock_websocket_create_connection):
+    client = Client('127.0.0.1')
+
+    ws = mock.Mock()
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+    mock_websocket_create_connection.return_value = ws
+
+    client.set_settable_address(4363, int)
+
+    client.set_values({
+      'A_CYC_RH_VALUE': 22
+    })

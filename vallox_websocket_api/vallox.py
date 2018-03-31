@@ -67,7 +67,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(self.fetch_metric('A_CYC_FIREPLACE_TIME'))
-            logging.info('Setting unit to FIREPLACE profile for %d minutes', dur)
+            logging.info('Setting unit to FIREPLACE profile for %s minutes', dur)
             self.set_values({'A_CYC_BOOST_TIMER': '0',
                              'A_CYC_FIREPLACE_TIMER': dur,
                              'A_CYC_EXTRA_TIMER': '0'})
@@ -76,7 +76,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(self.fetch_metric('A_CYC_BOOST_TIME'))
-            logging.info('Setting unit to BOOST profile for %d minutes', dur)
+            logging.info('Setting unit to BOOST profile for %s minutes', dur)
             self.set_values({'A_CYC_BOOST_TIMER': dur,
                              'A_CYC_FIREPLACE_TIMER': '0',
                              'A_CYC_EXTRA_TIMER': '0'})
@@ -85,7 +85,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(self.fetch_metric('A_CYC_EXTRA_TIME'))
-                logging.info('Setting unit to EXTRA profile for %d minutes', dur)
+                logging.info('Setting unit to EXTRA profile for %s minutes', dur)
             self.set_values({'A_CYC_BOOST_TIMER': '0',
                              'A_CYC_FIREPLACE_TIMER': '0',
                              'A_CYC_EXTRA_TIMER': dur})

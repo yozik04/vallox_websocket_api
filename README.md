@@ -49,6 +49,10 @@ Code uses next libraries
 
 # Installation
 
+    pip install vallox-websocket-api
+    
+    # or
+
     pip install git+https://github.com/yozik04/vallox_websocket_api
 
 # Usage
@@ -109,8 +113,7 @@ pprint(metrics)
 
 ## Setting values
 
-Textual values will be converted to integers before sending to the unit
-
+Textual values will be converted to integers before sending to the unit.
 ```python
 from vallox_websocket_api import Client
 
@@ -146,6 +149,18 @@ client.set_values({
   'A_CYC_EXTRA_TIMER': 0
 })
 ```
+
+Not all addresses are settable.
+
+**If you think that a currently unsettable address needs to become settable, please create a new issue on the github.**
+
+As a temporary solution you can make any address settable:
+```python
+client.set_settable_address('A_CYC_REMAINING_TIME_FOR_FILTER', int)
+```
+
+**int** in the end is accepted value type
+
 
 ## Details
 

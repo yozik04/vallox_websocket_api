@@ -1,5 +1,6 @@
 import numpy
 import websocket
+import re
 from websocket import ABNF, WebSocketException
 
 from .constants import vlxDevConstants, vlxOffsetObject
@@ -55,6 +56,39 @@ def to_celcius(value):
 
 
 class Client:
+  SETTABLE_INT_VALS = {
+    re.compile('^A_CYC_STATE$'),
+    re.compile('^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$'),
+    re.compile('^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$'),
+    re.compile('^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$'),
+    re.compile('^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$')
+  }
+
+  _settable_addresses = None
+
+  def get_settable_addresses(self):
+    if not self._settable_addresses:
+      self._settable_addresses = dict((v, int) for k, v in vlxDevConstants.__dict__.items() if any(r.match(k) for r in self.SETTABLE_INT_VALS))
+    return self._settable_addresses
+
+  def set_settable_address(self, address, var_type):
+    if var_type not in [int, float]:
+      raise AttributeError("Only float or int type are supported")
+
+    self.get_settable_addresses() # populate _settable_addresses
+
+    if type(address) == int:
+      self._settable_addresses[address] = var_type
+      return
+    elif type(address) == str:
+      if hasattr(vlxDevConstants, address):
+        key = int(getattr(vlxDevConstants, address, address))
+        self._settable_addresses[key] = var_type
+        return
+
+    raise AttributeError("Unable to add address '%s' to settable list" % str(address))
+
+
   def __init__(self, ip_address):
     self.ip_address = ip_address
 
@@ -81,12 +115,22 @@ class Client:
   def _decode_dict(self, dict):
     new_dict = {}
     for k, v in dict.items():
-      key = int(getattr(vlxDevConstants, k, k))
+      try:
+        key = int(getattr(vlxDevConstants, k, k))
+      except ValueError as e:
+        raise AttributeError("%s setting does not exist" % k)
       try:
         value = int(v)
       except ValueError as e:
         value = float(v)
       new_dict[key] = value
+
+      addresses = self.get_settable_addresses()
+      try:
+        required_type = addresses[key]
+      except KeyError as e:
+        raise AttributeError("%s setting is not settable" % k)
+      assert type(value) == required_type, "%s(%d) key needs to be an int, but %s passed" % (k, key, type(value).__name__)
 
     return new_dict
 
