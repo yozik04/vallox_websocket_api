@@ -1016,3 +1016,4 @@ Basically all that you can get via Modbus connection
 
 # Reading
 * https://www.vallox.com/files/1092/Modbus-instructions_ENG-250915.pdf
+* https://www.vallox.com/files/1092/Manual_Modbus_ENG_20180307_PRINT.pdf
