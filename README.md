@@ -144,6 +144,7 @@ client.set_values({
   'A_CYC_BOOST_TIMER': 30, #Minutes
 })
 
+# Setting Fireplace profile fan speeds
 client.set_values({
   'A_CYC_FIREPLACE_EXTR_FAN': 50,
   'A_CYC_FIREPLACE_SUPP_FAN': 50
