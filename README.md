@@ -122,15 +122,31 @@ client = Client('192.168.9.106')
 # Setting Home profile fan speed
 client.set_values({'A_CYC_HOME_SPEED_SETTING': 10})
 
+# Setting Home profile target temperature
+client.set_values({'A_CYC_HOME_AIR_TEMP_TARGET': 15})
+
+
 # Setting Away profile fan speed
 client.set_values({'A_CYC_AWAY_SPEED_SETTING': 10})
+
+# Setting Away profile target temperature
+client.set_values({'A_CYC_AWAY_AIR_TEMP_TARGET': 15})
+
 
 # Setting Boost profile fan speed
 client.set_values({'A_CYC_BOOST_SPEED_SETTING': 10})
 
+# Setting Boost profile target temperature
+client.set_values({'A_CYC_BOOST_AIR_TEMP_TARGET': 15})
+
 # Setting Boost profile timer
 client.set_values({
   'A_CYC_BOOST_TIMER': 30, #Minutes
+})
+
+client.set_values({
+  'A_CYC_FIREPLACE_EXTR_FAN': 50,
+  'A_CYC_FIREPLACE_SUPP_FAN': 50
 })
 
 # Setting Fireplace profile timer
