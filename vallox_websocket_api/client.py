@@ -130,7 +130,7 @@ class Client:
         required_type = addresses[key]
       except KeyError as e:
         raise AttributeError("%s setting is not settable" % k)
-      assert type(value) == required_type, "%s(%d) key needs to be an int, but %s passed" % (k, key, type(value).__name__)
+      assert type(value) == required_type, "%s(%d) key needs to be an %s, but %s passed" % (k, key, required_type.__name__, type(value).__name__)
 
     return new_dict
 

@@ -119,34 +119,23 @@ from vallox_websocket_api import Client
 
 client = Client('192.168.9.106')
 
-# Setting At home profile
-client.set_values({
-  'A_CYC_STATE': 0,
-  'A_CYC_BOOST_TIMER': 0,
-  'A_CYC_FIREPLACE_TIMER': 0,
-  'A_CYC_EXTRA_TIMER': 0
-})
+# Setting Home profile fan speed
+client.set_values({'A_CYC_HOME_SPEED_SETTING': 10})
 
-# Setting Away profile
-client.set_values({
-  'A_CYC_STATE': 1,
-  'A_CYC_BOOST_TIMER': 0,
-  'A_CYC_FIREPLACE_TIMER': 0,
-  'A_CYC_EXTRA_TIMER': 0
-})
+# Setting Away profile fan speed
+client.set_values({'A_CYC_AWAY_SPEED_SETTING': 10})
 
-# Setting Boost profile
+# Setting Boost profile fan speed
+client.set_values({'A_CYC_BOOST_SPEED_SETTING': 10})
+
+# Setting Boost profile timer
 client.set_values({
   'A_CYC_BOOST_TIMER': 30, #Minutes
-  'A_CYC_FIREPLACE_TIMER': 0,
-  'A_CYC_EXTRA_TIMER': 0
 })
 
-# Setting Fireplace profile
+# Setting Fireplace profile timer
 client.set_values({
   'A_CYC_FIREPLACE_TIMER': 15, #Minutes
-  'A_CYC_BOOST_TIMER': 0,
-  'A_CYC_EXTRA_TIMER': 0
 })
 ```
 
