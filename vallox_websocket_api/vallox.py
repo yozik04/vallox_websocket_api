@@ -19,6 +19,14 @@ PROFILE = enum(
   EXTRA = 5
 )
 
+MAP = {
+  "temperature": {
+      PROFILE.HOME: 'A_CYC_HOME_AIR_TEMP_TARGET',
+      PROFILE.AWAY: 'A_CYC_AWAY_AIR_TEMP_TARGET',
+      PROFILE.BOOST: 'A_CYC_BOOST_AIR_TEMP_TARGET'
+  }
+}
+
 class Vallox(Client):
     def get_profile(self):
         """Returns the profile of the fan
@@ -90,3 +98,18 @@ class Vallox(Client):
                              'A_CYC_FIREPLACE_TIMER': '0',
                              'A_CYC_EXTRA_TIMER': dur})
 
+    def get_temperature(self, profile):
+        try:
+            setting = MAP["temperature"][profile]
+        except KeyError as e:
+            raise AttributeError("Temperature is not gettable for this profile: " + str(profile))
+
+        return self.fetch_metric(setting)
+
+    def set_temperature(self, profile, temperature):
+        try:
+            setting = MAP["temperature"][profile]
+        except KeyError as e:
+            raise AttributeError("Temperature is not settable for this profile: " + str(profile))
+
+        self.set_values({setting: temperature})

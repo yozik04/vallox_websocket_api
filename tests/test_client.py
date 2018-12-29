@@ -47,7 +47,7 @@ class TestClient(TestCase):
         'A_CYC_BOOST_TIMER': '11.2'
       })
 
-    with self.assertRaises(AssertionError) as context:
+    with self.assertRaises(ValueError) as context:
       client.set_values({
         'A_CYC_BOOST_AIR_TEMP_TARGET': '11.2'
       })
@@ -85,7 +85,7 @@ class TestClient(TestCase):
 
     with self.assertRaises(AttributeError) as context:
       client.set_values({
-        'A_CYC_RH_VALUE': '22'
+        'A_CYC_RH_VALUE': 22
       })
 
   @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)

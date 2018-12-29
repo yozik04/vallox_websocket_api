@@ -54,6 +54,8 @@ def calculate_offset(aIndex):
 def to_celcius(value):
   return round(value / 100.0 - 273.15, 1)
 
+def to_kelvin(value):
+  return int(value) * 100 + 27315
 
 class Client:
   SETTABLE_INT_VALS = {
@@ -166,6 +168,12 @@ class Client:
     return self.fetch_metrics([metric_key]).get(metric_key, None)
 
   def set_values(self, dict):
-    self._websocket_request(dict=dict)
+    new_dict = {}
+    for key, value in dict.items():
+      if '_TEMP_' in key:
+        value = to_kelvin(value)
+      new_dict[key] = value
+
+    self._websocket_request(dict=new_dict)
 
     return True
