@@ -1,5 +1,6 @@
 import mock
 import binascii
+import struct
 from unittest import TestCase
 
 from vallox_websocket_api import Vallox, PROFILE
@@ -49,6 +50,13 @@ class TestValloxGetTemperature(TestCase):
 
   @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
   def testFetchMetric(self, mock_websocket_create_connection):
+    """
+    IoQueue.KItemTypeFetch = 3
+    VlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES; = 246
+    item.value = 0;
+    checksum = 249
+    Uint16Array(4) [3, 246, 0, 249]
+    """
     client = Vallox('127.0.0.1')
 
     ws = mock.Mock()
@@ -57,4 +65,4 @@ class TestValloxGetTemperature(TestCase):
 
     self.assertEqual(20.0, client.fetch_metric('A_CYC_HOME_AIR_TEMP_TARGET'))
 
-    ws.send.assert_called_once_with(binascii.unhexlify('0300f6000000f900'), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack( "HHHH", 3, 246, 0, 249), opcode=0x2)

@@ -111,6 +111,20 @@ from pprint import pprint
 pprint(metrics)
 ```
 
+## Reading historical data
+
+Device stores some historical data in its memory. Code to retrieve it:
+
+```python
+from vallox_websocket_api import Client
+
+client = Client('192.168.1.2')
+data = client.fetch_raw_logs()
+
+from pprint import pprint
+pprint(data)
+```
+
 ## Setting values
 
 Textual values will be converted to integers before sending to the unit.

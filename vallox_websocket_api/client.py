@@ -1,10 +1,12 @@
 import numpy
 import websocket
 import re
+
 from websocket import ABNF, WebSocketException
 
 from .constants import vlxDevConstants, vlxOffsetObject
 
+KPageSize = 65536
 
 def calculate_offset(aIndex):
   offset = 0
@@ -54,8 +56,82 @@ def calculate_offset(aIndex):
 def to_celcius(value):
   return round(value / 100.0 - 273.15, 1)
 
+
 def to_kelvin(value):
   return int(value) * 100 + 27315
+
+
+class VlxWriteItem:
+  def __init__(self):
+    self.type = 0 # 0 = normal item , 1=week clock item
+    self.address = 0
+    self.value = 0
+    self.extraParameter = 0
+
+class VlxDataBuffer:
+  #data = None  # type: List[VlxWriteItem]
+
+  def __init__(self):
+    self.data = []
+
+  def appendData(self, item):
+    assert isinstance(item, VlxWriteItem)
+    self.data.append(item)
+
+  def convert_data_to_buffer(self, aRequestType=None):
+    if aRequestType is None:
+      aRequestType = vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA
+
+    mandatoryParamCount = 3 # len, command, chksum
+    commandWords = 3
+    if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA:
+      commandWords = 2
+    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES:
+      commandWords = 1
+    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_DATA:
+      commandWords = 1
+    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW:
+      commandWords = 0
+
+    bufferLength = len(self.data) * commandWords + mandatoryParamCount
+    if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
+      bufferLength -= 1
+
+    buffer = numpy.zeros(bufferLength, dtype=numpy.uint16)
+
+    index = 0
+    buffer[index] = bufferLength - 1
+    index += 1
+
+    if aRequestType != vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
+      buffer[index] = aRequestType
+      index += 1
+
+    for i in range(0, len(self.data)):
+      #  write only read command / empty values in case of read table
+      if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_DATA:
+        buffer[index + i] = self.data[i].address
+      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES:
+        buffer[index + i] = self.data[i].value
+      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA:
+        buffer[index + i * 2] = self.data[i].address
+        buffer[index + i * 2 + 1] = self.data[i].value
+      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW:
+        buffer[index + i * 2] = self.data[i].address
+      else:
+        buffer[index + i * 2] = self.data[i].address
+        buffer[index + i * 2 + 1] = self.data[i].value
+        if self.data[i].address == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
+          buffer[index + i * 2 + 2] = self.data[i].extraParameter
+
+    # calculate checksum
+    checksum = 0
+    for i in range(0, bufferLength - 1):
+      checksum = checksum + buffer[i]
+    checksum = checksum & 0xffff
+    buffer[bufferLength - 1] = checksum
+
+    return buffer.tobytes()
 
 class Client:
   SETTABLE_INT_VALS = {
@@ -95,24 +171,22 @@ class Client:
     self.ip_address = ip_address
 
   def _make_payload(self, command, dict):
-    arr = [command]
-    if dict is None:
-      arr.append(0)
+    buf = VlxDataBuffer()
+
+    if dict is None or len(dict) == 0:
+      item = VlxWriteItem()
+      item.address = command
+      item.value = 0
+      buf.appendData(item)
     else:
       dict = self._decode_dict(dict)
       for k, v in dict.items():
-        arr.append(k)
-        arr.append(v)
+        item = VlxWriteItem()
+        item.address = k
+        item.value = v
+        buf.appendData(item)
 
-    arr.insert(0, len(arr) + 1)
-
-    checksum = 0
-    for a in arr:
-      checksum += a
-
-    arr.append(checksum)
-
-    return numpy.array(arr, dtype=numpy.uint16).tobytes()
+    return buf.convert_data_to_buffer(command)
 
   def _decode_dict(self, dict):
     new_dict = {}
@@ -136,20 +210,24 @@ class Client:
 
     return new_dict
 
-  def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None):
+  def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None, read_packets=1):
     try:
       ws = websocket.create_connection("ws://%s:80/" % self.ip_address)
       request = self._make_payload(command, dict)
       ws.send(request, opcode=ABNF.OPCODE_BINARY)
-      result = ws.recv()
+      results = []
+      for i in range(0, read_packets):
+        results.append(ws.recv())
       ws.close()
-      return numpy.frombuffer(result, numpy.uint16).byteswap()
+      return results[0] if read_packets == 1 else results
     except WebSocketException as e:
       raise IOError('Websocket requiest failed: %s' % e.message)
 
   def fetch_metrics(self, metric_keys=None):
     metrics = {}
-    data = self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES)
+    result = self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES)
+
+    data = numpy.frombuffer(result, numpy.uint16).byteswap()
 
     if not metric_keys:
       metric_keys = vlxDevConstants.__dict__.keys()
@@ -163,6 +241,45 @@ class Client:
       metrics[key] = value
 
     return metrics
+
+  def _read_raw_log_octet(self, cell):
+    if cell[0] == 0xff:
+      return None
+
+    return dict(
+      variableId=cell[0],
+      mm=cell[1],
+      hh=cell[2],
+      d=cell[3],
+      m=cell[4],
+      y=cell[5],
+      value=((cell[7] << 8) | (cell[6])) & 0xffff
+    )
+
+  def fetch_raw_logs(self):
+    result = self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW, read_packets=2)
+    tmp = numpy.frombuffer(result[0], numpy.uint16)
+    data = numpy.frombuffer(result[1], numpy.uint8)
+
+    totalPacketSize = tmp[2] * KPageSize
+
+    series = []
+    serie_nr = 0
+    for start in range(0, totalPacketSize, KPageSize):
+      points = []
+      for p in range(start, start + KPageSize, 8):
+        cell = self._read_raw_log_octet(data[p:p+8])
+
+        if cell:
+          if cell["variableId"] <= 3: # first 4 are temperatures
+            cell["value"] = to_celcius(cell["value"])
+          points.append(cell)
+
+      serie_nr += 1
+
+      series.append(points)
+
+    return series
 
   def fetch_metric(self, metric_key):
     return self.fetch_metrics([metric_key]).get(metric_key, None)
