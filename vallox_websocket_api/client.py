@@ -1,6 +1,7 @@
 import numpy
 import websocket
 import re
+import datetime
 
 from websocket import ABNF, WebSocketException
 
@@ -59,6 +60,16 @@ def to_celcius(value):
 
 def to_kelvin(value):
   return int(value) * 100 + 27315
+
+
+variableId_name_map = {
+  0: "extract_air_temp",
+  1: "exhaust_air_temp",
+  2: "outdoor_air_temp",
+  3: "supply_air_temp",
+  4: "co2",
+  5: "humidity"
+}
 
 
 class VlxWriteItem:
@@ -247,12 +258,9 @@ class Client:
       return None
 
     return dict(
-      variableId=cell[0],
-      mm=cell[1],
-      hh=cell[2],
-      d=cell[3],
-      m=cell[4],
-      y=cell[5],
+      id=cell[0],
+      name=variableId_name_map[cell[0]],
+      date=datetime.datetime(year=2000+cell[5], month=cell[4], day=cell[3], hour=cell[2], minute=cell[1]),
       value=((cell[7] << 8) | (cell[6])) & 0xffff
     )
 
@@ -271,7 +279,7 @@ class Client:
         cell = self._read_raw_log_octet(data[p:p+8])
 
         if cell:
-          if cell["variableId"] <= 3: # first 4 are temperatures
+          if cell["id"] <= 3: # first 4 are temperatures
             cell["value"] = to_celcius(cell["value"])
           points.append(cell)
 
