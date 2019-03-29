@@ -35,7 +35,7 @@ def parse_requirements(filename, parent=None):
 setup(
   name='vallox_websocket_api',
   packages=['vallox_websocket_api'],
-  version='1.5.0',
+  version='1.5.1',
   description='Vallox WebSocket API',
   author='Jevgeni Kiski',
   author_email='yozik04@gmail.com',
@@ -43,7 +43,6 @@ setup(
   long_description_content_type="text/markdown",
   url='https://github.com/yozik04/vallox_websocket_api',
   license='LGPL 3',
-  download_url='https://github.com/yozik04/vallox_websocket_api/archive/1.1.1.tar.gz',
   keywords = 'vallox api',
   classifiers = [
       'Development Status :: 5 - Production/Stable',

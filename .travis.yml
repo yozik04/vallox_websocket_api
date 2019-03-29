@@ -14,6 +14,7 @@ deploy:
   provider: pypi
   user: yozik04
   distributions: sdist
+  skip_existing: true
   on:
     tags: true
   password:
