@@ -1,9 +1,10 @@
+dist: xenial
 language: python
 python:
 - "3.5"
 - '3.6'
 - '3.7'
-- pypy3.6
+- 'pypy3.5'
 install:
 - pip install .
 - pip install -r requirements.txt
