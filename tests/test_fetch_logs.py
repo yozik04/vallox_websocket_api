@@ -1,18 +1,26 @@
 import struct
 import mock
-from unittest import TestCase
+import asynctest
+import websockets
 
 from vallox_websocket_api import Vallox
 
+def with_vallox(func):
+  @asynctest.patch('websockets.connect')
+  async def wrapper(cls, connect):
+    client = Vallox('127.0.0.1')
+    client.set_values = asynctest.CoroutineMock()
+    instance = connect.return_value
 
-class TestValloxRawLogs(TestCase):
-  def setUp(self):
-    self.client = Vallox('127.0.0.1')
+    protocol_mock = asynctest.create_autospec(websockets.WebSocketCommonProtocol)
+    instance.__aenter__.side_effect = protocol_mock
+    await func(cls, client, protocol_mock.return_value)
 
-    self.client.set_values = mock.MagicMock()
+  return wrapper
 
-  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
-  def testFetchRawLogs(self, mock_websocket_create_connection):
+class TestValloxRawLogs(asynctest.TestCase):
+  @with_vallox
+  async def testFetchRawLogs(self, client, ws):
     """
     IoQueue.KItemTypeLog = 1
     VlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW = 243
@@ -20,12 +28,9 @@ class TestValloxRawLogs(TestCase):
     Uint16Array(3) [2, 243, 245]
     :return:
     """
-    client = Vallox('127.0.0.1')
 
-    ws = mock.Mock()
     ws.recv.return_value = struct.pack("HHHH", 3, 243, 0, 246)
-    mock_websocket_create_connection.return_value = ws
 
-    data = client.fetch_raw_logs()
+    data = await client.fetch_raw_logs()
 
-    ws.send.assert_called_once_with(struct.pack( "HHH", 2, 243, 245), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack( "HHH", 2, 243, 245))

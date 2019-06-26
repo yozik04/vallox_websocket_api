@@ -1,10 +1,17 @@
-# vallox_websocket_api
+# vallox_websocket_api 2.0
+New async version of WebSocket API for Vallox ventilation units
 
-Python version of WebSocket API for Vallox ventilation units
+Old sync version is available [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
+
+## Requirements
+Python 3.5.1+
+
+If you want to use Python 2.7, then use old sync version [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
 
 Current code can:
-* Set unit profile
+* Set unit profile and fan speeds
 * Fetch and decode metrics
+* Fetch temperature logs
 
 [![Build Status](https://travis-ci.org/yozik04/vallox_websocket_api.svg?branch=master)](https://travis-ci.org/yozik04/vallox_websocket_api)
 
@@ -12,7 +19,7 @@ Current code can:
 
 Your ventilation unit should be connected to LAN.
 
-Code will use websockets API that Valox own web interface uses.
+Code will use websockets API that Valox's own web interface uses.
 
 ## Supported units
 
@@ -45,7 +52,7 @@ But API should also work with next units:
 Code uses next libraries
 
 * numpy
-* websocket-client
+* websockets
 
 # Installation
 
@@ -54,6 +61,9 @@ Code uses next libraries
     # or
 
     pip install git+https://github.com/yozik04/vallox_websocket_api
+    
+    # for old version for Python 2.7
+    pip install 'vallox-websocket-api>=1.5.0,<2.0.0'
 
 # Usage
 
@@ -62,18 +72,22 @@ Changing unit profile and reading metrics
 ## Profile control:
 
 ```python
-from vallox_websocket_api import Vallox, PROFILE;
-client = Vallox('192.168.1.10'); # Vallox unit IP
+import asyncio
+from vallox_websocket_api import Vallox, PROFILE
+client = Vallox('192.168.1.10') # Vallox unit IP
 
-client.get_profile(); # RETURNS a PROFILE.* value
-client.set_profile(PROFILE.HOME); # Permanently HOME profile
-client.set_profile(PROFILE.AWAY); # Permanently AWAY profile
-client.set_profile(PROFILE.FIREPLACE); # FIREPLACE mode for configured timeout
-client.set_profile(PROFILE.FIREPLACE, 120); # FIREPLACE mode for 120 min
-client.set_profile(PROFILE.FIREPLACE, 65535); # FIREPLACE mode, never TIMEOUT
-client.set_profile(PROFILE.EXTRA); # EXTRA mode for configured timeout
-client.set_profile(PROFILE.EXTRA, 120); # EXTRA mode for 120 min
-client.set_profile(PROFILE.EXTRA, 65535); # EXTRA mode, never TIMEOUT
+async def run():
+    await client.get_profile() # RETURNS a PROFILE.* value
+    await client.set_profile(PROFILE.HOME) # Permanently HOME profile
+    await client.set_profile(PROFILE.AWAY) # Permanently AWAY profile
+    await client.set_profile(PROFILE.FIREPLACE) # FIREPLACE mode for configured timeout
+    await client.set_profile(PROFILE.FIREPLACE, 120) # FIREPLACE mode for 120 min
+    await client.set_profile(PROFILE.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
+    await client.set_profile(PROFILE.EXTRA) # EXTRA mode for configured timeout
+    await client.set_profile(PROFILE.EXTRA, 120) # EXTRA mode for 120 min
+    await client.set_profile(PROFILE.EXTRA, 65535) # EXTRA mode, never TIMEOUT
+
+asyncio.get_event_loop().run_until_complete(run())
 ```
 
 ## Metrics
@@ -82,33 +96,39 @@ Reading metrics and setting values
 
 ## Reading Metrics
 ```python
-
+import asyncio
 from vallox_websocket_api import Client
 
 client = Client('192.168.1.2')
-metrics = client.fetch_metrics()
 
-from pprint import pprint
-pprint(metrics)
+async def run():
+    metrics = await client.fetch_metrics()
+    
+    from pprint import pprint
+    pprint(metrics)
+    
+asyncio.get_event_loop().run_until_complete(run())
 ```
 
 Or if you want just a subset of metrics:
 
 ```python
-
+import asyncio
 from vallox_websocket_api import Client
 
 client = Client('192.168.1.2')
-metrics = client.fetch_metrics([
-  'A_CYC_TEMP_EXHAUST_AIR',
-  'A_CYC_TEMP_EXTRACT_AIR',
-  'A_CYC_TEMP_OUTDOOR_AIR',
-  'A_CYC_TEMP_SUPPLY_AIR',
-  'A_CYC_TEMP_SUPPLY_CELL_AIR'
-])
-
-from pprint import pprint
-pprint(metrics)
+async def run():
+    metrics = await client.fetch_metrics([
+      'A_CYC_TEMP_EXHAUST_AIR',
+      'A_CYC_TEMP_EXTRACT_AIR',
+      'A_CYC_TEMP_OUTDOOR_AIR',
+      'A_CYC_TEMP_SUPPLY_AIR',
+      'A_CYC_TEMP_SUPPLY_CELL_AIR'
+    ])
+    
+    from pprint import pprint
+    pprint(metrics)
+asyncio.get_event_loop().run_until_complete(run())
 ```
 
 ## Reading historical data
@@ -116,58 +136,65 @@ pprint(metrics)
 Device stores some historical data in its memory. Code to retrieve it:
 
 ```python
+import asyncio
 from vallox_websocket_api import Client
 
 client = Client('192.168.1.2')
-data = client.fetch_raw_logs()
-
-from pprint import pprint
-pprint(data)
+async def run():
+    data = await client.fetch_raw_logs()
+    
+    from pprint import pprint
+    pprint(data)
+asyncio.get_event_loop().run_until_complete(run())
 ```
 
 ## Setting values
 
 Textual values will be converted to integers before sending to the unit.
 ```python
+import asyncio
 from vallox_websocket_api import Client
 
 client = Client('192.168.9.106')
 
-# Setting Home profile fan speed
-client.set_values({'A_CYC_HOME_SPEED_SETTING': 10})
-
-# Setting Home profile target temperature
-client.set_values({'A_CYC_HOME_AIR_TEMP_TARGET': 15})
-
-
-# Setting Away profile fan speed
-client.set_values({'A_CYC_AWAY_SPEED_SETTING': 10})
-
-# Setting Away profile target temperature
-client.set_values({'A_CYC_AWAY_AIR_TEMP_TARGET': 15})
-
-
-# Setting Boost profile fan speed
-client.set_values({'A_CYC_BOOST_SPEED_SETTING': 10})
-
-# Setting Boost profile target temperature
-client.set_values({'A_CYC_BOOST_AIR_TEMP_TARGET': 15})
-
-# Setting Boost profile timer
-client.set_values({
-  'A_CYC_BOOST_TIMER': 30, #Minutes
-})
-
-# Setting Fireplace profile fan speeds
-client.set_values({
-  'A_CYC_FIREPLACE_EXTR_FAN': 50,
-  'A_CYC_FIREPLACE_SUPP_FAN': 50
-})
-
-# Setting Fireplace profile timer
-client.set_values({
-  'A_CYC_FIREPLACE_TIMER': 15, #Minutes
-})
+async def run():
+    # Setting Home profile fan speed
+    await client.set_values({'A_CYC_HOME_SPEED_SETTING': 10})
+    
+    # Setting Home profile target temperature
+    await client.set_values({'A_CYC_HOME_AIR_TEMP_TARGET': 15})
+    
+    
+    # Setting Away profile fan speed
+    await client.set_values({'A_CYC_AWAY_SPEED_SETTING': 10})
+    
+    # Setting Away profile target temperature
+    await client.set_values({'A_CYC_AWAY_AIR_TEMP_TARGET': 15})
+    
+    
+    # Setting Boost profile fan speed
+    await client.set_values({'A_CYC_BOOST_SPEED_SETTING': 10})
+    
+    # Setting Boost profile target temperature
+    await client.set_values({'A_CYC_BOOST_AIR_TEMP_TARGET': 15})
+    
+    # Setting Boost profile timer
+    await client.set_values({
+      'A_CYC_BOOST_TIMER': 30, #Minutes
+    })
+    
+    # Setting Fireplace profile fan speeds
+    await client.set_values({
+      'A_CYC_FIREPLACE_EXTR_FAN': 50,
+      'A_CYC_FIREPLACE_SUPP_FAN': 50
+    })
+    
+    # Setting Fireplace profile timer
+    await client.set_values({
+      'A_CYC_FIREPLACE_TIMER': 15, #Minutes
+    })
+    
+asyncio.get_event_loop().run_until_complete(run())
 ```
 
 Not all addresses are settable.

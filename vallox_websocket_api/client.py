@@ -1,9 +1,8 @@
 import numpy
-import websocket
 import re
 import datetime
 
-from websocket import ABNF, WebSocketException
+import websockets
 
 from .constants import vlxDevConstants, vlxOffsetObject
 
@@ -70,7 +69,6 @@ variableId_name_map = {
   4: "co2",
   5: "humidity"
 }
-
 
 class VlxWriteItem:
   def __init__(self):
@@ -221,22 +219,20 @@ class Client:
 
     return new_dict
 
-  def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None, read_packets=1):
-    try:
-      ws = websocket.create_connection("ws://%s:80/" % self.ip_address)
-      request = self._make_payload(command, dict)
-      ws.send(request, opcode=ABNF.OPCODE_BINARY)
-      results = []
-      for i in range(0, read_packets):
-        results.append(ws.recv())
-      ws.close()
-      return results[0] if read_packets == 1 else results
-    except WebSocketException as e:
-      raise IOError('Websocket requiest failed: %s' % e.message)
+  async def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None, read_packets=1):
+    async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+        request = self._make_payload(command, dict)
+        await ws.send(request)
+        results = []
+        for i in range(0, read_packets):
+          r = await ws.recv()
 
-  def fetch_metrics(self, metric_keys=None):
+          results.append(r)
+        return results[0] if read_packets == 1 else results
+
+  async def fetch_metrics(self, metric_keys=None):
     metrics = {}
-    result = self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES)
+    result = await self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES)
 
     data = numpy.frombuffer(result, numpy.uint16).byteswap()
 
@@ -264,8 +260,8 @@ class Client:
       value=((cell[7] << 8) | (cell[6])) & 0xffff
     )
 
-  def fetch_raw_logs(self):
-    result = self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW, read_packets=2)
+  async def fetch_raw_logs(self):
+    result = await self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW, read_packets=2)
     tmp = numpy.frombuffer(result[0], numpy.uint16)
     data = numpy.frombuffer(result[1], numpy.uint8)
 
@@ -289,16 +285,16 @@ class Client:
 
     return series
 
-  def fetch_metric(self, metric_key):
-    return self.fetch_metrics([metric_key]).get(metric_key, None)
+  async def fetch_metric(self, metric_key):
+    return (await self.fetch_metrics([metric_key])).get(metric_key, None)
 
-  def set_values(self, dict):
+  async def set_values(self, dict):
     new_dict = {}
     for key, value in dict.items():
       if '_TEMP_' in key:
         value = to_kelvin(value)
       new_dict[key] = value
 
-    self._websocket_request(dict=new_dict)
+    await self._websocket_request(dict=new_dict)
 
     return True

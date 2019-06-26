@@ -1,55 +1,55 @@
 import mock
 import binascii
 import struct
-from unittest import TestCase
+import asynctest
 
 from vallox_websocket_api import Vallox, PROFILE
+from tests.decorators import with_client
 
 
-class TestValloxSetTemperature(TestCase):
+class TestValloxSetTemperature(asynctest.TestCase):
   def setUp(self):
     self.client = Vallox('127.0.0.1')
 
-    self.client.set_values = mock.MagicMock()
+    self.client.set_values = asynctest.CoroutineMock()
 
-  def checkSetTemperature(self, profile, temperature, set_values_dict):
-    self.client.set_temperature(profile, temperature)
+  async def checkSetTemperature(self, profile, temperature, set_values_dict):
+    await self.client.set_temperature(profile, temperature)
 
     self.client.set_values.assert_called_once_with(set_values_dict)
 
-  def testSetTemperatureHome(self):
-    self.checkSetTemperature(PROFILE.HOME, 19, {'A_CYC_HOME_AIR_TEMP_TARGET': 19})
+  async def testSetTemperatureHome(self):
+    await self.checkSetTemperature(PROFILE.HOME, 19, {'A_CYC_HOME_AIR_TEMP_TARGET': 19})
 
-  def testSetTemperatureAway(self):
-    self.checkSetTemperature(PROFILE.AWAY, 19, {'A_CYC_AWAY_AIR_TEMP_TARGET': 19})
+  async def testSetTemperatureAway(self):
+    await self.checkSetTemperature(PROFILE.AWAY, 19, {'A_CYC_AWAY_AIR_TEMP_TARGET': 19})
 
-  def testSetTemperatureBoost(self):
-    self.checkSetTemperature(PROFILE.BOOST, 19, {'A_CYC_BOOST_AIR_TEMP_TARGET': 19})
+  async def testSetTemperatureBoost(self):
+    await self.checkSetTemperature(PROFILE.BOOST, 19, {'A_CYC_BOOST_AIR_TEMP_TARGET': 19})
 
-  def testSetTemperatureWrong(self):
+  async def testSetTemperatureWrong(self):
     with self.assertRaises(AttributeError) as context:
-      self.checkSetTemperature(PROFILE.FIREPLACE, 19, {'A_CYC_FIREPLACE_AIR_TEMP_TARGET': 19})
+      await self.checkSetTemperature(PROFILE.FIREPLACE, 19, {'A_CYC_FIREPLACE_AIR_TEMP_TARGET': 19})
 
 
-class TestValloxGetTemperature(TestCase):
+class TestValloxGetTemperature(asynctest.TestCase):
   def setUp(self):
     self.client = Vallox('127.0.0.1')
 
+  async def checkGetTemperatureForProfile(self, fetch_metrics_result, profile, expected_temperature):
+    self.client.fetch_metrics = asynctest.CoroutineMock(return_value=fetch_metrics_result)
 
-  def checkGetTemperatureForProfile(self, fetch_metrics_result, profile, expected_temperature):
-    self.client.fetch_metrics = mock.MagicMock(return_value=fetch_metrics_result)
-
-    self.assertEqual(self.client.get_temperature(profile), expected_temperature)
+    self.assertEqual(await self.client.get_temperature(profile), expected_temperature)
 
     self.client.fetch_metrics.assert_called_once_with(list(fetch_metrics_result.keys()))
 
-  def testGetTemperatureForProfileHome(self):
-    self.checkGetTemperatureForProfile({
+  async def testGetTemperatureForProfileHome(self):
+    await self.checkGetTemperatureForProfile({
       'A_CYC_HOME_AIR_TEMP_TARGET': 19
     }, PROFILE.HOME, 19)
 
-  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
-  def testFetchMetric(self, mock_websocket_create_connection):
+  @with_client
+  async def testFetchMetric(self, client, ws):
     """
     IoQueue.KItemTypeFetch = 3
     VlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES; = 246
@@ -57,12 +57,8 @@ class TestValloxGetTemperature(TestCase):
     checksum = 249
     Uint16Array(4) [3, 246, 0, 249]
     """
-    client = Vallox('127.0.0.1')
-
-    ws = mock.Mock()
     ws.recv.return_value = binascii.unhexlify('0024000000000000000000000000000001000800030000000000000061df98b100030003203fb9500331000000000000000000560000000000000000000000000000000000000000001b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b000f732a6ca969a171d1730800010000022700000028000000000000000001a6029e000100000028ffffffffffffffffffffffffffffffffffffffffffffffff000000000000000057c503e8ffffffffffff000000190000000000010000000000000000000300001b98012000a50000000000000000001e00010000000100000000000000000007001b000f001700010012000200070044000000010000000000000007003200320001000000000000001e0000c0a80501ffffff0000000000000000000000000000000000000000000000000000000000c0a8050c86076097f78844b7ac4db61e502fe4f2004c004c000100c00101001c001e000a00320000003703840000708f00320032000a0000000000010000000a721f0000000000010000000f728300000000000000000064715700000000000000000000000000000000000000010037001e000000000000000068bf71bb000083910000002600b4000000010001000000010001001e000f00080001001200000003000000000000000000000017000003e90000000000000001000100010000000a003200010000000000000000000000000000000000000000001000000000000000000000000000540048000000000000000000000000000000c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
-    mock_websocket_create_connection.return_value = ws
 
-    self.assertEqual(20.0, client.fetch_metric('A_CYC_HOME_AIR_TEMP_TARGET'))
+    self.assertEqual(20.0, await client.fetch_metric('A_CYC_HOME_AIR_TEMP_TARGET'))
 
-    ws.send.assert_called_once_with(struct.pack( "HHHH", 3, 246, 0, 249), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack( "HHHH", 3, 246, 0, 249))

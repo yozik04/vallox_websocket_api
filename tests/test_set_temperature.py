@@ -1,47 +1,36 @@
-import mock
 import struct
-from unittest import TestCase
-import binascii
+import asynctest
 
-from vallox_websocket_api import Client
+from tests.decorators import with_client
 
-class TestClient(TestCase):
+class TestClient(asynctest.TestCase):
   # [4, 249, 20508, 29215, 49976]
-  def setUp(self):
-    self.client = Client('127.0.0.1')
-
-  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
-  def testSetHomeAirTempTargetRawInt(self, mock_websocket_create_connection):
-    ws = mock.Mock()
+  @with_client
+  async def testSetHomeAirTempTargetRawInt(self, client, ws):
     ws.recv.return_value = b''
-    mock_websocket_create_connection.return_value = ws
 
-    self.client.set_values({
+    await client.set_values({
       'A_CYC_HOME_AIR_TEMP_TARGET': 19
     })
 
-    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976))
 
-  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
-  def testSetHomeAirTempTargetRawFloat(self, mock_websocket_create_connection):
-    ws = mock.Mock()
+  @with_client
+  async def testSetHomeAirTempTargetRawFloat(self, client, ws):
     ws.recv.return_value = b''
-    mock_websocket_create_connection.return_value = ws
 
-    self.client.set_values({
+    await client.set_values({
       'A_CYC_HOME_AIR_TEMP_TARGET': 19.0
     })
 
-    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976))
 
-  @mock.patch('vallox_websocket_api.client.websocket.create_connection', autospec=True)
-  def testSetHomeAirTempTargetRawString(self, mock_websocket_create_connection):
-    ws = mock.Mock()
+  @with_client
+  async def testSetHomeAirTempTargetRawString(self, client, ws):
     ws.recv.return_value = b''
-    mock_websocket_create_connection.return_value = ws
 
-    self.client.set_values({
+    await client.set_values({
       'A_CYC_HOME_AIR_TEMP_TARGET': '19'
     })
 
-    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976), opcode=0x2)
+    ws.send.assert_called_once_with(struct.pack('HHHHH', 4, 249, 20508, 29215, 49976))
