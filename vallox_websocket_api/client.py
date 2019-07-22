@@ -1,10 +1,11 @@
-import numpy
-import re
 import datetime
+import re
 
+import numpy
 import websockets
 
 from .constants import vlxDevConstants, vlxOffsetObject
+from .exceptions import ValloxWebsocketException
 
 KPageSize = 65536
 
@@ -220,15 +221,26 @@ class Client:
     return new_dict
 
   async def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None, read_packets=1):
-    async with websockets.connect("ws://%s/" % self.ip_address) as ws:
-        request = self._make_payload(command, dict)
-        await ws.send(request)
-        results = []
-        for i in range(0, read_packets):
-          r = await ws.recv()
+    try:
+      async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+          request = self._make_payload(command, dict)
+          await ws.send(request)
+          results = []
+          for i in range(0, read_packets):
+            r = await ws.recv()
 
-          results.append(r)
-        return results[0] if read_packets == 1 else results
+            results.append(r)
+          return results[0] if read_packets == 1 else results
+    except websockets.InvalidHandshake as e:
+      raise ValloxWebsocketException('Websocket handshake failed') from e
+    except websockets.InvalidURI as e:
+      raise ValloxWebsocketException('Websocket invalid URI') from e
+    except websockets.PayloadTooBig as e:
+      raise ValloxWebsocketException('Websocket payload too big') from e
+    except websockets.InvalidState as e:
+      raise ValloxWebsocketException('Websocket invalid state') from e
+    except websockets.WebSocketProtocolError as e:
+      raise ValloxWebsocketException('Websocket protocol error') from e
 
   async def fetch_metrics(self, metric_keys=None):
     metrics = {}

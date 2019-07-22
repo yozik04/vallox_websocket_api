@@ -2,6 +2,11 @@ import binascii
 import asynctest
 
 from tests.decorators import with_client
+from asynctest import CoroutineMock
+
+from websockets.exceptions import InvalidMessage
+
+from vallox_websocket_api.exceptions import ValloxWebsocketException
 
 class TestClient(asynctest.TestCase):
   @with_client
@@ -88,3 +93,13 @@ class TestClient(asynctest.TestCase):
     await client.set_values({
       'A_CYC_RH_VALUE': 22
     })
+
+  @with_client
+  async def testSetNewSettableAddressByAddressException(self, client, ws):
+    ws.recv.side_effect = CoroutineMock(side_effect=InvalidMessage())
+
+    client.set_settable_address(4363, int)
+
+    await self.assertAsyncRaisesRegex(ValloxWebsocketException, "Websocket handshake failed", client.set_values({
+      'A_CYC_RH_VALUE': 22
+    }))
