@@ -1,312 +1,224 @@
 import datetime
 import re
 
-import numpy
 import websockets
 
 from .constants import vlxDevConstants, vlxOffsetObject
 from .exceptions import ValloxWebsocketException
+from .messages import LogReadRequest, WriteMessageRequest, ReadTableRequest, ReadTableResponse, LogReadResponse1, \
+    LogReadResponse2
 
 KPageSize = 65536
 
-def calculate_offset(aIndex):
-  offset = 0
 
-  if ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_general_info) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_general_info)):
-    offset = aIndex + 1
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_typhoon_general_info) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_typhoon_general_info)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_typhoon_general_info + vlxOffsetObject.CYC_NUM_OF_GENERAL_INFO
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_hw_state) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_hw_state)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_hw_state + vlxOffsetObject.CYC_NUM_OF_GENERAL_TYP_INFO
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_sw_state) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_sw_state)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_sw_state + vlxOffsetObject.CYC_NUM_OF_HW_STATES
-  elif (
-      (aIndex > vlxDevConstants.RANGE_START_g_cyclone_time) and (aIndex <= vlxDevConstants.RANGE_END_g_cyclone_time)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_time + vlxOffsetObject.CYC_NUM_OF_SW_STATES
-  elif (
-      (aIndex > vlxDevConstants.RANGE_START_g_cyclone_output) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_output)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_output + vlxOffsetObject.CYC_NUM_OF_TIME_ELEMENTS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_input) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_input)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_input + vlxOffsetObject.CYC_NUM_OF_OUTPUTS
-  elif (
-      (aIndex > vlxDevConstants.RANGE_START_g_cyclone_config) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_config)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_config + vlxOffsetObject.CYC_NUM_OF_INPUTS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_settings) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_settings)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_settings + vlxOffsetObject.CYC_NUM_OF_CONFIGS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_typhoon_settings) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_typhoon_settings)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_typhoon_settings + vlxOffsetObject.CYC_NUM_OF_CYC_SETTINGS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_self_test) and (aIndex <= vlxDevConstants.RANGE_END_g_self_test)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_self_test + vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_faults) and (aIndex <= vlxDevConstants.RANGE_END_g_faults)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_faults + vlxOffsetObject.CYC_NUM_OF_SELF_TESTS
-  elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule) and (
-      aIndex <= vlxDevConstants.RANGE_END_g_cyclone_weekly_schedule)):
-    offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule + vlxOffsetObject.CYC_NUM_OF_FAULTS
-  return offset - 1
+def calculate_offset(aIndex):
+    offset = 0
+
+    if ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_general_info) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_general_info)):
+        offset = aIndex + 1
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_typhoon_general_info) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_typhoon_general_info)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_typhoon_general_info + vlxOffsetObject.CYC_NUM_OF_GENERAL_INFO
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_hw_state) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_hw_state)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_hw_state + vlxOffsetObject.CYC_NUM_OF_GENERAL_TYP_INFO
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_sw_state) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_sw_state)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_sw_state + vlxOffsetObject.CYC_NUM_OF_HW_STATES
+    elif (
+        (aIndex > vlxDevConstants.RANGE_START_g_cyclone_time) and (aIndex <= vlxDevConstants.RANGE_END_g_cyclone_time)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_time + vlxOffsetObject.CYC_NUM_OF_SW_STATES
+    elif (
+        (aIndex > vlxDevConstants.RANGE_START_g_cyclone_output) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_output)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_output + vlxOffsetObject.CYC_NUM_OF_TIME_ELEMENTS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_input) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_input)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_input + vlxOffsetObject.CYC_NUM_OF_OUTPUTS
+    elif (
+        (aIndex > vlxDevConstants.RANGE_START_g_cyclone_config) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_config)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_config + vlxOffsetObject.CYC_NUM_OF_INPUTS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_settings) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_settings)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_settings + vlxOffsetObject.CYC_NUM_OF_CONFIGS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_typhoon_settings) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_typhoon_settings)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_typhoon_settings + vlxOffsetObject.CYC_NUM_OF_CYC_SETTINGS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_self_test) and (aIndex <= vlxDevConstants.RANGE_END_g_self_test)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_self_test + vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_faults) and (aIndex <= vlxDevConstants.RANGE_END_g_faults)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_faults + vlxOffsetObject.CYC_NUM_OF_SELF_TESTS
+    elif ((aIndex > vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule) and (
+        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_weekly_schedule)):
+        offset = (aIndex) - vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule + vlxOffsetObject.CYC_NUM_OF_FAULTS
+    return offset - 1
 
 
 def to_celcius(value):
-  return round(value / 100.0 - 273.15, 1)
+    return round(value / 100.0 - 273.15, 1)
 
 
 def to_kelvin(value):
-  return int(value) * 100 + 27315
+    return int(value) * 100 + 27315
 
 
 variableId_name_map = {
-  0: "extract_air_temp",
-  1: "exhaust_air_temp",
-  2: "outdoor_air_temp",
-  3: "supply_air_temp",
-  4: "co2",
-  5: "humidity"
+    0: "extract_air_temp",
+    1: "exhaust_air_temp",
+    2: "outdoor_air_temp",
+    3: "supply_air_temp",
+    4: "co2",
+    5: "humidity"
 }
 
-class VlxWriteItem:
-  def __init__(self):
-    self.type = 0 # 0 = normal item , 1=week clock item
-    self.address = 0
-    self.value = 0
-    self.extraParameter = 0
-
-class VlxDataBuffer:
-  #data = None  # type: List[VlxWriteItem]
-
-  def __init__(self):
-    self.data = []
-
-  def appendData(self, item):
-    assert isinstance(item, VlxWriteItem)
-    self.data.append(item)
-
-  def convert_data_to_buffer(self, aRequestType=None):
-    if aRequestType is None:
-      aRequestType = vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA
-
-    mandatoryParamCount = 3 # len, command, chksum
-    commandWords = 3
-    if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA:
-      commandWords = 2
-    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES:
-      commandWords = 1
-    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_DATA:
-      commandWords = 1
-    elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW:
-      commandWords = 0
-
-    bufferLength = len(self.data) * commandWords + mandatoryParamCount
-    if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
-      bufferLength -= 1
-
-    buffer = numpy.zeros(bufferLength, dtype=numpy.uint16)
-
-    index = 0
-    buffer[index] = bufferLength - 1
-    index += 1
-
-    if aRequestType != vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
-      buffer[index] = aRequestType
-      index += 1
-
-    for i in range(0, len(self.data)):
-      #  write only read command / empty values in case of read table
-      if aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_DATA:
-        buffer[index + i] = self.data[i].address
-      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES:
-        buffer[index + i] = self.data[i].value
-      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA:
-        buffer[index + i * 2] = self.data[i].address
-        buffer[index + i * 2 + 1] = self.data[i].value
-      elif aRequestType == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW:
-        buffer[index + i * 2] = self.data[i].address
-      else:
-        buffer[index + i * 2] = self.data[i].address
-        buffer[index + i * 2 + 1] = self.data[i].value
-        if self.data[i].address == vlxDevConstants.WS_WEB_UI_COMMAND_LOG_LIMITED:
-          buffer[index + i * 2 + 2] = self.data[i].extraParameter
-
-    # calculate checksum
-    checksum = 0
-    for i in range(0, bufferLength - 1):
-      checksum = checksum + buffer[i]
-    checksum = checksum & 0xffff
-    buffer[bufferLength - 1] = checksum
-
-    return buffer.tobytes()
 
 class Client:
-  SETTABLE_INT_VALS = {
-    re.compile('^A_CYC_STATE$'),
-    re.compile('^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$'),
-    re.compile('^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$'),
-    re.compile('^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$'),
-    re.compile('^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$')
-  }
+    SETTABLE_INT_VALS = {
+        re.compile('^A_CYC_STATE$'),
+        re.compile('^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$'),
+        re.compile('^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$'),
+        re.compile('^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$'),
+        re.compile('^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$')
+    }
 
-  _settable_addresses = None
+    _settable_addresses = None
 
-  def get_settable_addresses(self):
-    if not self._settable_addresses:
-      self._settable_addresses = dict((v, int) for k, v in vlxDevConstants.__dict__.items() if any(r.match(k) for r in self.SETTABLE_INT_VALS))
-    return self._settable_addresses
+    def get_settable_addresses(self):
+        if not self._settable_addresses:
+            self._settable_addresses = dict((v, int) for k, v in vlxDevConstants.__dict__.items() if
+                                            any(r.match(k) for r in self.SETTABLE_INT_VALS))
+        return self._settable_addresses
 
-  def set_settable_address(self, address, var_type):
-    if var_type not in [int, float]:
-      raise AttributeError("Only float or int type are supported")
+    def set_settable_address(self, address, var_type):
+        if var_type not in [int, float]:
+            raise AttributeError("Only float or int type are supported")
 
-    self.get_settable_addresses() # populate _settable_addresses
+        self.get_settable_addresses()  # populate _settable_addresses
 
-    if type(address) == int:
-      self._settable_addresses[address] = var_type
-      return
-    elif type(address) == str:
-      if hasattr(vlxDevConstants, address):
-        key = int(getattr(vlxDevConstants, address, address))
-        self._settable_addresses[key] = var_type
-        return
+        if type(address) == int:
+            self._settable_addresses[address] = var_type
+            return
+        elif type(address) == str:
+            if hasattr(vlxDevConstants, address):
+                key = int(getattr(vlxDevConstants, address, address))
+                self._settable_addresses[key] = var_type
+                return
 
-    raise AttributeError("Unable to add address '%s' to settable list" % str(address))
+        raise AttributeError("Unable to add address '%s' to settable list" % str(address))
 
+    def __init__(self, ip_address):
+        self.ip_address = ip_address
 
-  def __init__(self, ip_address):
-    self.ip_address = ip_address
+    def _decode_pair(self, key, value):
+        try:
+            address = int(getattr(vlxDevConstants, key, key))
+        except ValueError as e:
+            raise AttributeError("%s setting does not exist" % key)
+        if '_TEMP_' in key:
+            value = to_kelvin(value)
+        try:
+            raw_value = int(value)
+        except ValueError as e:
+            raw_value = float(value)
 
-  def _make_payload(self, command, dict):
-    buf = VlxDataBuffer()
+        addresses = self.get_settable_addresses()
+        try:
+            required_type = addresses[address]
+        except KeyError as e:
+            raise AttributeError("%s setting is not settable" % key)
+        assert type(raw_value) == required_type, "%s(%d) key needs to be an %s, but %s passed" % (
+        key, address, required_type.__name__, type(raw_value).__name__)
 
-    if dict is None or len(dict) == 0:
-      item = VlxWriteItem()
-      item.address = command
-      item.value = 0
-      buf.appendData(item)
-    else:
-      dict = self._decode_dict(dict)
-      for k, v in dict.items():
-        item = VlxWriteItem()
-        item.address = k
-        item.value = v
-        buf.appendData(item)
+        return address, raw_value
 
-    return buf.convert_data_to_buffer(command)
+    async def _websocket_request(self, payload, read_packets=1):
+        try:
+            async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+                await ws.send(payload)
+                results = []
+                for i in range(0, read_packets):
+                    r = await ws.recv()
 
-  def _decode_dict(self, dict):
-    new_dict = {}
-    for k, v in dict.items():
-      try:
-        key = int(getattr(vlxDevConstants, k, k))
-      except ValueError as e:
-        raise AttributeError("%s setting does not exist" % k)
-      try:
-        value = int(v)
-      except ValueError as e:
-        value = float(v)
-      new_dict[key] = value
+                    results.append(r)
+                return results[0] if read_packets == 1 else results
+        except websockets.InvalidHandshake as e:
+            raise ValloxWebsocketException('Websocket handshake failed') from e
+        except websockets.InvalidURI as e:
+            raise ValloxWebsocketException('Websocket invalid URI') from e
+        except websockets.PayloadTooBig as e:
+            raise ValloxWebsocketException('Websocket payload too big') from e
+        except websockets.InvalidState as e:
+            raise ValloxWebsocketException('Websocket invalid state') from e
+        except websockets.WebSocketProtocolError as e:
+            raise ValloxWebsocketException('Websocket protocol error') from e
 
-      addresses = self.get_settable_addresses()
-      try:
-        required_type = addresses[key]
-      except KeyError as e:
-        raise AttributeError("%s setting is not settable" % k)
-      assert type(value) == required_type, "%s(%d) key needs to be an %s, but %s passed" % (k, key, required_type.__name__, type(value).__name__)
+    async def fetch_metrics(self, metric_keys=None):
+        metrics = {}
+        payload = ReadTableRequest.build({})
+        result = await self._websocket_request(payload)
 
-    return new_dict
+        data = ReadTableResponse.parse(result)
 
-  async def _websocket_request(self, command=vlxDevConstants.WS_WEB_UI_COMMAND_WRITE_DATA, dict=None, read_packets=1):
-    try:
-      async with websockets.connect("ws://%s/" % self.ip_address) as ws:
-          request = self._make_payload(command, dict)
-          await ws.send(request)
-          results = []
-          for i in range(0, read_packets):
-            r = await ws.recv()
+        if not metric_keys:
+            metric_keys = vlxDevConstants.__dict__.keys()
 
-            results.append(r)
-          return results[0] if read_packets == 1 else results
-    except websockets.InvalidHandshake as e:
-      raise ValloxWebsocketException('Websocket handshake failed') from e
-    except websockets.InvalidURI as e:
-      raise ValloxWebsocketException('Websocket invalid URI') from e
-    except websockets.PayloadTooBig as e:
-      raise ValloxWebsocketException('Websocket payload too big') from e
-    except websockets.InvalidState as e:
-      raise ValloxWebsocketException('Websocket invalid state') from e
-    except websockets.WebSocketProtocolError as e:
-      raise ValloxWebsocketException('Websocket protocol error') from e
+        for key in metric_keys:
+            value = data[calculate_offset(vlxDevConstants.__dict__[key])]
 
-  async def fetch_metrics(self, metric_keys=None):
-    metrics = {}
-    result = await self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_READ_TABLES)
+            if '_TEMP_' in key:
+                value = to_celcius(value)
 
-    data = numpy.frombuffer(result, numpy.uint16).byteswap()
+            metrics[key] = value
 
-    if not metric_keys:
-      metric_keys = vlxDevConstants.__dict__.keys()
+        return metrics
 
-    for key in metric_keys:
-      value = data[calculate_offset(vlxDevConstants.__dict__[key])]
+    async def fetch_raw_logs(self):
+        payload = LogReadRequest.build({})
+        result = await self._websocket_request(payload, read_packets=2)
+        page_count = LogReadResponse1.parse(result[0]).fields.value.pages
 
-      if '_TEMP_' in key:
-        value = to_celcius(value)
+        expected_total_len = KPageSize * page_count
+        result1_len = len(result[1])
 
-      metrics[key] = value
+        assert expected_total_len == result1_len, "Response is not full %d/%d" % (result1_len, expected_total_len)
 
-    return metrics
+        pages = (result[1][i:i + KPageSize] for i in range(0, result1_len, KPageSize))
 
-  def _read_raw_log_octet(self, cell):
-    if cell[0] == 0xff:
-      return None
+        series = []
+        for page in pages:
+            points = []
+            data = LogReadResponse2.parse(page)
+            for cell in data:
+                name = str(cell.id)
+                point = {
+                    "id": int(cell.id),
+                    "name": name,
+                    "date": cell.date,
+                    "value": cell.value
+                }
+                if '_temp' in name:
+                    point['value'] = to_celcius(cell.value)
 
-    return dict(
-      id=cell[0],
-      name=variableId_name_map[cell[0]],
-      date=datetime.datetime(year=2000+cell[5], month=cell[4], day=cell[3], hour=cell[2], minute=cell[1]),
-      value=((cell[7] << 8) | (cell[6])) & 0xffff
-    )
+                points.append(point)
 
-  async def fetch_raw_logs(self):
-    result = await self._websocket_request(command=vlxDevConstants.WS_WEB_UI_COMMAND_LOG_RAW, read_packets=2)
-    tmp = numpy.frombuffer(result[0], numpy.uint16)
-    data = numpy.frombuffer(result[1], numpy.uint8)
+            series.append(points)
 
-    totalPacketSize = tmp[2] * KPageSize
+        return series
 
-    series = []
-    serie_nr = 0
-    for start in range(0, totalPacketSize, KPageSize):
-      points = []
-      for p in range(start, start + KPageSize, 8):
-        cell = self._read_raw_log_octet(data[p:p+8])
+    async def fetch_metric(self, metric_key):
+        return (await self.fetch_metrics([metric_key])).get(metric_key, None)
 
-        if cell:
-          if cell["id"] <= 3: # first 4 are temperatures
-            cell["value"] = to_celcius(cell["value"])
-          points.append(cell)
+    async def set_values(self, dict):
+        items = []
+        for key, value in dict.items():
+            address, raw_value = self._decode_pair(key, value)
+            items.append({"address": address, "value": raw_value})
 
-      serie_nr += 1
+        payload = WriteMessageRequest.build({"fields": {"value": {
+            "items": items
+        }}})
+        await self._websocket_request(payload)
 
-      series.append(points)
-
-    return series
-
-  async def fetch_metric(self, metric_key):
-    return (await self.fetch_metrics([metric_key])).get(metric_key, None)
-
-  async def set_values(self, dict):
-    new_dict = {}
-    for key, value in dict.items():
-      if '_TEMP_' in key:
-        value = to_kelvin(value)
-      new_dict[key] = value
-
-    await self._websocket_request(dict=new_dict)
-
-    return True
+        return True
