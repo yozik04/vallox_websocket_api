@@ -216,6 +216,7 @@ class Client:
             address, raw_value = self._decode_pair(key, value)
             items.append({"address": address, "value": raw_value})
 
+        items.sort(key=lambda x: x['address'])
         payload = WriteMessageRequest.build({"fields": {"value": {
             "items": items
         }}})

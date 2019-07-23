@@ -51,4 +51,4 @@ class TestMessages(TestCase):
 
         result = LogReadResponse1.parse(response)
 
-        self.assertEquals(6, result.fields.value.pages)
+        self.assertEqual(6, result.fields.value.pages)
