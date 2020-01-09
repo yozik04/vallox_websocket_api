@@ -3,6 +3,10 @@ New async version of WebSocket API for Vallox ventilation units
 
 Old sync version is available [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
 
+## Changelog
+
+Release notes fo the new versions are [here](./CHANGELOG.md)
+
 ## Requirements
 Python 3.5.1+
 
@@ -14,8 +18,6 @@ Current code can:
 * Fetch temperature logs
 
 [![Build Status](https://travis-ci.org/yozik04/vallox_websocket_api.svg?branch=master)](https://travis-ci.org/yozik04/vallox_websocket_api)
-
-# Requirements
 
 Your ventilation unit should be connected to LAN.
 
