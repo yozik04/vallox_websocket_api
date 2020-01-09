@@ -11,7 +11,7 @@ script: python setup.py test
 deploy:
   provider: pypi
   user: yozik04
-  distributions: sdist
+  distributions: "sdist bdist_wheel"
   skip_existing: true
   on:
     tags: true

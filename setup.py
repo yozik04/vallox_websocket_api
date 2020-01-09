@@ -42,6 +42,7 @@ setup(
         'websockets >= 7.0, < 8.0',
         'construct >= 2.9.0, < 3.0.0',
     ],
+    setup_requires=['wheel'],
     tests_require=[
         'mock',
         'asynctest',
