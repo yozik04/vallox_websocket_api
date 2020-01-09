@@ -56,12 +56,12 @@ def calculate_offset(aIndex):
     return offset - 1
 
 
-def to_celcius(value):
+def to_celcius(value: int) -> float:
     return round(value / 100.0 - 273.15, 1)
 
 
-def to_kelvin(value):
-    return int(value * 10) * 10 + 27315
+def to_kelvin(value: float) -> int:
+    return int(round(value * 10) * 10 + 27315)
 
 
 variableId_name_map = {
@@ -117,7 +117,7 @@ class Client:
         except ValueError as e:
             raise AttributeError("%s setting does not exist" % key)
         if '_TEMP_' in key:
-            value = to_kelvin(value)
+            value = to_kelvin(float(value))
         try:
             raw_value = int(value)
         except ValueError as e:

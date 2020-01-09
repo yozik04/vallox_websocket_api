@@ -20,6 +20,46 @@ class TestClient(asynctest.TestCase):
     ws.send.assert_called_once_with(binascii.unhexlify('0300f6000000f900'))
 
   @with_client
+  async def testSetTempValue(self, client, ws):
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+
+    await client.set_values({
+      'A_CYC_BOOST_AIR_TEMP_TARGET': '19'
+    })
+
+    ws.send.assert_called_once_with(binascii.unhexlify('0400f90022501f723ec3'))
+
+  @with_client
+  async def testSetTempValueFraction(self, client, ws):
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+
+    await client.set_values({
+      'A_CYC_BOOST_AIR_TEMP_TARGET': '19.1'
+    })
+
+    ws.send.assert_called_once_with(binascii.unhexlify('0400f9002250297248c3'))
+
+  @with_client
+  async def testSetTempValueFractionRounding1(self, client, ws):
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+
+    await client.set_values({
+      'A_CYC_BOOST_AIR_TEMP_TARGET': '19.145'
+    })
+
+    ws.send.assert_called_once_with(binascii.unhexlify('0400f9002250297248c3'))
+
+  @with_client
+  async def testSetTempValueFractionRounding2(self, client, ws):
+    ws.recv.return_value = binascii.unhexlify('0200f500f700')
+
+    await client.set_values({
+      'A_CYC_BOOST_AIR_TEMP_TARGET': '18.991'
+    })
+
+    ws.send.assert_called_once_with(binascii.unhexlify('0400f90022501f723ec3'))
+
+  @with_client
   async def testSetValue(self, client, ws):
     ws.recv.return_value = binascii.unhexlify('0200f500f700')
 
@@ -43,7 +83,7 @@ class TestClient(asynctest.TestCase):
 
     with self.assertRaises(ValueError) as context:
       await client.set_values({
-        'A_CYC_BOOST_AIR_TEMP_TARGET': '11.2'
+        'A_CYC_BOOST_AIR_TEMP_TARGET': '11.a'
       })
 
     with self.assertRaises(AssertionError) as context:
