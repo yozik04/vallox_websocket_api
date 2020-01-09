@@ -36,14 +36,14 @@ setup(
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3'
+        'Programming Language :: Python :: 3',
     ],
     install_requires=[
-        'websockets >= 7.0, < 8.0'
-        'construct >= 2.9.0, < 3.0.0'
+        'websockets >= 7.0, < 8.0',
+        'construct >= 2.9.0, < 3.0.0',
     ],
     tests_require=[
         'mock',
-        'asynctest'
+        'asynctest',
     ]
 )
