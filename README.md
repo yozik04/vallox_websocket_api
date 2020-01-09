@@ -53,7 +53,7 @@ But API should also work with next units:
 
 Code uses next libraries
 
-* numpy
+* construct
 * websockets
 
 # Installation
