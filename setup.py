@@ -17,45 +17,33 @@ def read(filename, parent=None):
     except IOError:
         return ''
 
-
-def parse_requirements(filename, parent=None):
-    parent = (parent or __file__)
-    filepath = p.join(p.dirname(parent), filename)
-    content = read(filename, parent)
-
-    for line_number, line in enumerate(content.splitlines(), 1):
-        candidate = line.strip()
-
-        if candidate.startswith('-r'):
-            for item in parse_requirements(candidate[2:].strip(), filepath):
-                yield item
-        else:
-            yield candidate
-
 setup(
-  name='vallox_websocket_api',
-  packages=['vallox_websocket_api'],
-  version='2.3.0',
-  python_requires=">=3.5.1, <4",
-  description='Vallox WebSocket API',
-  author='Jevgeni Kiski',
-  author_email='yozik04@gmail.com',
-  long_description=read('README.md'),
-  long_description_content_type="text/markdown",
-  url='https://github.com/yozik04/vallox_websocket_api',
-  license='LGPL 3',
-  keywords = 'vallox api',
-  classifiers = [
-      'Development Status :: 5 - Production/Stable',
-      'Intended Audience :: Developers',
-      'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
-      'Operating System :: OS Independent',
-      'Programming Language :: Python',
-      'Programming Language :: Python :: 3'
-  ],
-  install_requires=list(parse_requirements('requirements.txt')),
-  tests_require=[
-    'mock',
-    'asynctest'
-  ]
+    name='vallox_websocket_api',
+    packages=['vallox_websocket_api'],
+    version='2.3.0',
+    python_requires=">=3.5.1, <4",
+    description='Vallox WebSocket API',
+    author='Jevgeni Kiski',
+    author_email='yozik04@gmail.com',
+    long_description=read('README.md'),
+    long_description_content_type="text/markdown",
+    url='https://github.com/yozik04/vallox_websocket_api',
+    license='LGPL 3',
+    keywords='vallox api',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3'
+    ],
+    install_requires=[
+        'websockets >= 7.0, < 8.0'
+        'construct >= 2.9.0, < 3.0.0'
+    ],
+    tests_require=[
+        'mock',
+        'asynctest'
+    ]
 )
