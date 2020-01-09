@@ -61,7 +61,7 @@ def to_celcius(value):
 
 
 def to_kelvin(value):
-    return int(value) * 100 + 27315
+    return int(value * 10) * 10 + 27315
 
 
 variableId_name_map = {
