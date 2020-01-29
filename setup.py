@@ -39,7 +39,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     install_requires=[
-        'websockets >= 7.0, < 8.0',
+        'websockets >= 7.0, < 9.0',
         'construct >= 2.9.0, < 3.0.0',
     ],
     setup_requires=['wheel'],
