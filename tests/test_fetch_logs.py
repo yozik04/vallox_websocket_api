@@ -4,14 +4,13 @@ from os import path
 
 import asynctest
 import websockets
-
 from vallox_websocket_api import Vallox
 
 
 def with_vallox(func):
-    @asynctest.patch('websockets.connect')
+    @asynctest.patch("websockets.connect")
     async def wrapper(cls, connect):
-        client = Vallox('127.0.0.1')
+        client = Vallox("127.0.0.1")
         client.set_values = asynctest.CoroutineMock()
         instance = connect.return_value
 
@@ -33,8 +32,8 @@ class TestValloxRawLogs(asynctest.TestCase):
         :return:
         """
 
-        resp1 = b'\x03\x00\xf3\x00\x06\x00\xfc\x00'
-        with open(path.join(path.dirname(__file__), 'log_data.bin'), 'rb') as f:
+        resp1 = b"\x03\x00\xf3\x00\x06\x00\xfc\x00"
+        with open(path.join(path.dirname(__file__), "log_data.bin"), "rb") as f:
             resp2 = f.read()
         ws.recv.side_effect = [resp1, resp2]
 
@@ -46,9 +45,12 @@ class TestValloxRawLogs(asynctest.TestCase):
         self.assertEqual(1308, len(data[0]))
         self.assertEqual(8192, len(data[1]))
 
-        self.assertEqual(data[0][0], {
-            'id': 0,
-            'name': 'extract_air_temp',
-            'date': datetime.datetime(2019, 7, 21, 10, 18),
-            'value': 24.1
-        })
+        self.assertEqual(
+            data[0][0],
+            {
+                "id": 0,
+                "name": "extract_air_temp",
+                "date": datetime.datetime(2019, 7, 21, 10, 18),
+                "value": 24.1,
+            },
+        )
