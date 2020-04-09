@@ -125,16 +125,6 @@ def to_kelvin(value: float) -> int:
     return int(round(value * 10) * 10 + 27315)
 
 
-variableId_name_map = {
-    0: "extract_air_temp",
-    1: "exhaust_air_temp",
-    2: "outdoor_air_temp",
-    3: "supply_air_temp",
-    4: "co2",
-    5: "humidity",
-}
-
-
 class Client:
     SETTABLE_INT_VALS = {
         re.compile("^A_CYC_STATE$"),
