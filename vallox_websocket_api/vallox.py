@@ -21,6 +21,32 @@ MAP = {
     }
 }
 
+DEVICE_MODEL = [
+    None,
+    "Vallox 096 MV",
+    "Vallox 110 MV",
+    "Vallox 145 MV",
+    "Vallox 245 MV",
+    "ValloPlus 270 MV",
+    "ValloPlus 350 MV",
+    "ValloPlus 510 MV",
+    "ValloPlus 850 MV",
+    "Vallox TSK Multi 50 MV",
+    "Vallox TSK Multi 80 MV",
+    "ValloMulti 200 MV",
+    "ValloMulti 300 MV",
+    "DV96 Adroit",
+    "DV110 Adroit",
+    "DV145 Adroit",
+    "DV245 Adroit",
+    "DV TSK Multi 50 Adroit",
+    "DV TSK Multi 80 Adroit"
+]
+
+
+def swap16(val):
+    return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
+
 
 class Vallox(Client):
     async def get_profile(self):
@@ -122,6 +148,24 @@ class Vallox(Client):
                     "A_CYC_EXTRA_TIMER": dur,
                 }
             )
+
+    async def get_info(self):
+        SW_VERSION_METRICS = ['A_CYC_APPL_SW_VERSION_%d' % i for i in range(1, 10)]
+
+        data = await self.fetch_metrics(SW_VERSION_METRICS + ["A_CYC_MACHINE_MODEL"])
+
+        model = 'Unknown'
+        try:
+            model = DEVICE_MODEL[data['A_CYC_MACHINE_MODEL']]
+        except IndexError:
+            pass
+
+        version = ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip('.0')
+
+        return {
+            "model": model,
+            "sw_version": version
+        }
 
     async def get_temperature(self, profile):
         try:
