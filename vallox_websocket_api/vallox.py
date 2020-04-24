@@ -40,7 +40,7 @@ DEVICE_MODEL = [
     "DV145 Adroit",
     "DV245 Adroit",
     "DV TSK Multi 50 Adroit",
-    "DV TSK Multi 80 Adroit"
+    "DV TSK Multi 80 Adroit",
 ]
 
 
@@ -150,22 +150,21 @@ class Vallox(Client):
             )
 
     async def get_info(self):
-        SW_VERSION_METRICS = ['A_CYC_APPL_SW_VERSION_%d' % i for i in range(1, 10)]
+        SW_VERSION_METRICS = ["A_CYC_APPL_SW_VERSION_%d" % i for i in range(1, 10)]
 
         data = await self.fetch_metrics(SW_VERSION_METRICS + ["A_CYC_MACHINE_MODEL"])
 
-        model = 'Unknown'
+        model = "Unknown"
         try:
-            model = DEVICE_MODEL[data['A_CYC_MACHINE_MODEL']]
+            model = DEVICE_MODEL[data["A_CYC_MACHINE_MODEL"]]
         except IndexError:
             pass
 
-        version = ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip('.0')
+        version = ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(
+            ".0"
+        )
 
-        return {
-            "model": model,
-            "sw_version": version
-        }
+        return {"model": model, "sw_version": version}
 
     async def get_temperature(self, profile):
         try:
