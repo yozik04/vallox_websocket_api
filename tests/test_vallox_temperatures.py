@@ -2,6 +2,7 @@ import binascii
 import struct
 
 import asynctest
+
 from tests.decorators import with_client
 from vallox_websocket_api import PROFILE, Vallox
 

@@ -4,6 +4,7 @@ from os import path
 
 import asynctest
 import websockets
+
 from vallox_websocket_api import Vallox
 
 

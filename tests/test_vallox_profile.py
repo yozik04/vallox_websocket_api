@@ -1,4 +1,5 @@
 import asynctest
+
 from vallox_websocket_api import PROFILE, Vallox
 
 

@@ -1,6 +1,7 @@
 import struct
 
 import asynctest
+
 from tests.decorators import with_client
 
 

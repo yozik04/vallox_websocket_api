@@ -2,9 +2,10 @@ import binascii
 
 import asynctest
 from asynctest import CoroutineMock
+from websockets.exceptions import InvalidMessage
+
 from tests.decorators import with_client
 from vallox_websocket_api.exceptions import ValloxWebsocketException
-from websockets.exceptions import InvalidMessage
 
 
 class TestClient(asynctest.TestCase):
