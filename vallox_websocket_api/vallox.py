@@ -1,10 +1,12 @@
 import logging
-from enum import Enum
+from enum import IntEnum
 
 from .client import Client
 
+logger = logging.getLogger('vallox').getChild(__name__)
 
-class PROFILE(Enum):
+
+class PROFILE(IntEnum):
     NONE = 0
     HOME = 1
     AWAY = 2
@@ -112,7 +114,7 @@ class Vallox(Client):
         # duration: None means default configured setting. 65535 means no time out
 
         if profile == PROFILE.HOME:
-            logging.info("Setting unit to HOME profile")
+            logger.info("Setting unit to HOME profile")
             await self.set_values(
                 {
                     "A_CYC_STATE": "0",
@@ -122,7 +124,7 @@ class Vallox(Client):
                 }
             )
         elif profile == PROFILE.AWAY:
-            logging.info("Setting unit to AWAY profile")
+            logger.info("Setting unit to AWAY profile")
             await self.set_values(
                 {
                     "A_CYC_STATE": "1",
@@ -136,7 +138,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_FIREPLACE_TIME"))
-            logging.info("Setting unit to FIREPLACE profile for %s minutes", dur)
+            logger.info("Setting unit to FIREPLACE profile for %s minutes", dur)
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": "0",
@@ -149,7 +151,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_BOOST_TIME"))
-            logging.info("Setting unit to BOOST profile for %s minutes", dur)
+            logger.info("Setting unit to BOOST profile for %s minutes", dur)
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": dur,
@@ -162,7 +164,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_EXTRA_TIME"))
-                logging.info("Setting unit to EXTRA profile for %s minutes", dur)
+                logger.info("Setting unit to EXTRA profile for %s minutes", dur)
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": "0",
