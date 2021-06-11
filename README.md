@@ -8,7 +8,7 @@ Old sync version is available [1.5.x](https://pypi.org/project/vallox-websocket-
 Release notes fo the new versions are [here](./CHANGELOG.md)
 
 ## Requirements
-Python 3.5.1+
+Python 3.6.0+
 
 If you want to use Python 2.7, then use old sync version [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
 
