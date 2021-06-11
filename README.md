@@ -3,9 +3,9 @@ New async version of WebSocket API for Vallox ventilation units
 
 Old sync version is available [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
 
-## Changelog
+## Releases
 
-Release notes fo the new versions are [here](./CHANGELOG.md)
+Release notes for the new versions are [here](https://github.com/yozik04/vallox_websocket_api/releases)
 
 ## Requirements
 Python 3.6.0+
