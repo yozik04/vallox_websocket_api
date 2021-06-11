@@ -17,7 +17,7 @@ Current code can:
 * Fetch and decode metrics
 * Fetch temperature logs
 
-[![Build Status](https://travis-ci.org/yozik04/vallox_websocket_api.svg?branch=master)](https://travis-ci.org/yozik04/vallox_websocket_api)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yozik04/vallox_websocket_api/Test)](https://github.com/yozik04/vallox_websocket_api/actions/workflows/python-test.yml)
 
 Your ventilation unit should be connected to LAN.
 
