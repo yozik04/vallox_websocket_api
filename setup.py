@@ -19,7 +19,7 @@ def read(filename, parent=None):
 setup(
     name="vallox_websocket_api",
     packages=["vallox_websocket_api"],
-    version="2.6.0",
+    version="2.6.1",
     python_requires=">=3.5.1, <4",
     description="Vallox WebSocket API",
     author="Jevgeni Kiski",
@@ -37,7 +37,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
-    install_requires=["websockets >= 7.0, < 9.0", "construct >= 2.9.0, < 3.0.0",],
+    install_requires=["websockets >= 9.1, < 10.0", "construct >= 2.9.0, < 3.0.0",],
     setup_requires=["wheel"],
     tests_require=["mock", "asynctest",],
 )
