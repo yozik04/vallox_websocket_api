@@ -1,5 +1,6 @@
 import logging
 from enum import IntEnum
+from uuid import UUID
 
 from .client import Client
 
@@ -66,6 +67,29 @@ DEVICE_MODEL = [
     "DV51 Adroit",
     "DV51K Adroit",
 ]
+
+SW_VERSION_METRICS = ["A_CYC_APPL_SW_VERSION_%d" % i for i in range(1, 10)]
+UUID_METRICS = ["A_CYC_UUID{}".format(i) for i in range(0, 8)]
+MODEL_METRIC = "A_CYC_MACHINE_MODEL"
+
+
+def get_model(data):
+    model = "Unknown"
+    try:
+        model = DEVICE_MODEL[data[MODEL_METRIC]]
+    except IndexError:
+        pass
+    return model
+
+
+def get_sw_version(data):
+    return ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(".0")
+
+
+def get_uuid(data):
+    int_values = [data[m] for m in UUID_METRICS]
+    hex_string = "".join([hex(i)[2:] for i in int_values])
+    return UUID(hex_string)
 
 
 def swap16(val):
@@ -174,21 +198,14 @@ class Vallox(Client):
             )
 
     async def get_info(self):
-        SW_VERSION_METRICS = ["A_CYC_APPL_SW_VERSION_%d" % i for i in range(1, 10)]
-
-        data = await self.fetch_metrics(SW_VERSION_METRICS + ["A_CYC_MACHINE_MODEL"])
-
-        model = "Unknown"
-        try:
-            model = DEVICE_MODEL[data["A_CYC_MACHINE_MODEL"]]
-        except IndexError:
-            pass
-
-        version = ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(
-            ".0"
+        data = await self.fetch_metrics(
+            SW_VERSION_METRICS + [MODEL_METRIC] + UUID_METRICS
         )
-
-        return {"model": model, "sw_version": version}
+        return {
+            "model": get_model(data),
+            "sw_version": get_sw_version(data),
+            "uuid": get_uuid(data),
+        }
 
     async def get_temperature(self, profile):
         try:
