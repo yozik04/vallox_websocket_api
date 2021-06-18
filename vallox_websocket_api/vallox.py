@@ -88,7 +88,7 @@ def get_sw_version(data):
 
 def get_uuid(data):
     int_values = [data[m] for m in UUID_METRICS]
-    hex_string = "".join([hex(i)[2:] for i in int_values])
+    hex_string = "".join("{0:04x}".format(i) for i in int_values)
     return UUID(hex_string)
 
 

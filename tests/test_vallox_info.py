@@ -21,9 +21,9 @@ class TestValloxInfo(asynctest.TestCase):
                 'A_CYC_APPL_SW_VERSION_9': 512,
                 'A_CYC_MACHINE_MODEL': 3,
                 'A_CYC_UUID0': 25432,
-                'A_CYC_UUID1': 25432,
+                'A_CYC_UUID1': 3772,
                 'A_CYC_UUID2': 25432,
-                'A_CYC_UUID3': 25432,
+                'A_CYC_UUID3': 0,
                 'A_CYC_UUID4': 25432,
                 'A_CYC_UUID5': 25432,
                 'A_CYC_UUID6': 25432,
@@ -35,6 +35,6 @@ class TestValloxInfo(asynctest.TestCase):
 
         self.assertEquals("Vallox 145 MV", info["model"])
         self.assertEquals("2.0.2", info["sw_version"])
-        self.assertEquals("63586358-6358-6358-6358-635863586358", str(info["uuid"]))
+        self.assertEquals("63580ebc-6358-0000-6358-635863586358", str(info["uuid"]))
 
         self.client.fetch_metrics.assert_called()
