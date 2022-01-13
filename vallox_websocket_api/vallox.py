@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Optional, Union
 from enum import IntEnum
 from uuid import UUID
 
@@ -73,31 +74,31 @@ UUID_METRICS = ["A_CYC_UUID{}".format(i) for i in range(0, 8)]
 MODEL_METRIC = "A_CYC_MACHINE_MODEL"
 
 
-def get_model(data):
-    model = "Unknown"
+def get_model(data: Dict[str, int]) -> str:
     try:
         model = DEVICE_MODEL[data[MODEL_METRIC]]
     except IndexError:
-        pass
-    return model
+        model = None
+
+    return model or "Unknown"
 
 
-def get_sw_version(data):
+def get_sw_version(data: Dict[str, int]) -> str:
     return ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(".0")
 
 
-def get_uuid(data):
+def get_uuid(data: Dict[str, int]) -> UUID:
     int_values = [data[m] for m in UUID_METRICS]
     hex_string = "".join("{0:04x}".format(i) for i in int_values)
     return UUID(hex_string)
 
 
-def swap16(val):
+def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
 
 class Vallox(Client):
-    async def get_profile(self):
+    async def get_profile(self) -> PROFILE:
         """Returns the profile of the fan
 
         :returns: One of PROFILE.* values or PROFILE.NONE if unknown
@@ -123,7 +124,7 @@ class Vallox(Client):
             return PROFILE.HOME
         return PROFILE.NONE
 
-    async def set_profile(self, profile, duration=None):
+    async def set_profile(self, profile: PROFILE, duration: Optional[int] = None) -> None:
         set_duration = None
         if duration is not None and 0 <= int(duration) <= 65535:
             set_duration = int(duration)
@@ -197,7 +198,7 @@ class Vallox(Client):
                 }
             )
 
-    async def get_info(self):
+    async def get_info(self) -> Dict[str, Union[str, UUID]]:
         data = await self.fetch_metrics(
             SW_VERSION_METRICS + [MODEL_METRIC] + UUID_METRICS
         )
@@ -207,7 +208,7 @@ class Vallox(Client):
             "uuid": get_uuid(data),
         }
 
-    async def get_temperature(self, profile):
+    async def get_temperature(self, profile: PROFILE) -> float:
         try:
             setting = MAP["temperature"][profile]
         except KeyError:
@@ -215,9 +216,9 @@ class Vallox(Client):
                 "Temperature is not gettable for this profile: " + str(profile)
             )
 
-        return await self.fetch_metric(setting)
+        return float(await self.fetch_metric(setting))
 
-    async def set_temperature(self, profile, temperature):
+    async def set_temperature(self, profile: PROFILE, temperature: float) -> None:
         try:
             setting = MAP["temperature"][profile]
         except KeyError:

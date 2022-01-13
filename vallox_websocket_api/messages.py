@@ -7,7 +7,7 @@ from construct import (Adapter, Bytes, Checksum, Const, Enum, GreedyRange,
 from .constants import vlxDevConstants
 
 
-def checksum_16(data):
+def checksum_16(data: bytes) -> int:
     c = 0
     for i in range(len(data) // 2):
         c = c + (data[i * 2 + 1] << 8) + data[i * 2]
@@ -72,7 +72,7 @@ LogReadResponse1 = Struct(
 
 
 class DateAdapter(Adapter):
-    def _decode(self, obj, context, path):
+    def _decode(self, obj, context, path) -> datetime.datetime:
         return datetime.datetime(
             year=2000 + obj[4], month=obj[3], day=obj[2], hour=obj[1], minute=obj[0]
         )

@@ -1,5 +1,5 @@
 class Constants(object):
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: int) -> None:
         super(Constants, self).__setattr__(key, value)
 
 

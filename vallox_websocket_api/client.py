@@ -1,4 +1,7 @@
+import asyncio
 import re
+from functools import wraps
+from typing import Dict, Union, Tuple, List, Optional, Any, TypeVar, Callable, cast
 
 import websockets
 
@@ -11,7 +14,7 @@ from .messages import (LogReadRequest, LogReadResponse1, LogReadResponse2,
 KPageSize = 65536
 
 
-def calculate_offset(aIndex):
+def calculate_offset(aIndex: int) -> int:
     offset = 0
 
     if (aIndex > vlxDevConstants.RANGE_START_g_cyclone_general_info) and (
@@ -125,6 +128,28 @@ def to_kelvin(value: float) -> int:
     return int(round(value * 10) * 10 + 27315)
 
 
+FuncT = TypeVar("FuncT", bound=Callable[..., Any])
+
+
+def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
+    @wraps(request_fn)
+    async def wrapped(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await request_fn(*args, **kwargs)
+        except websockets.InvalidHandshake as e:
+            raise ValloxWebsocketException("Websocket handshake failed") from e
+        except websockets.InvalidURI as e:
+            raise ValloxWebsocketException("Websocket invalid URI") from e
+        except websockets.PayloadTooBig as e:
+            raise ValloxWebsocketException("Websocket payload too big") from e
+        except websockets.InvalidState as e:
+            raise ValloxWebsocketException("Websocket invalid state") from e
+        except websockets.WebSocketProtocolError as e:
+            raise ValloxWebsocketException("Websocket protocol error") from e
+
+    return cast(FuncT, wrapped)
+
+
 class Client:
     SETTABLE_INT_VALS = {
         re.compile("^A_CYC_STATE$"),
@@ -135,18 +160,12 @@ class Client:
         re.compile("^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
     }
 
-    _settable_addresses = None
+    _settable_addresses: Dict[int, type]
 
-    def get_settable_addresses(self):
-        if not self._settable_addresses:
-            self._settable_addresses = dict(
-                (v, int)
-                for k, v in vlxDevConstants.__dict__.items()
-                if any(r.match(k) for r in self.SETTABLE_INT_VALS)
-            )
+    def get_settable_addresses(self) -> Dict[int, type]:
         return self._settable_addresses
 
-    def set_settable_address(self, address, var_type):
+    def set_settable_address(self, address: Union[int, str], var_type: type) -> None:
         if var_type not in [int, float]:
             raise AttributeError("Only float or int type are supported")
 
@@ -165,16 +184,23 @@ class Client:
             "Unable to add address '%s' to settable list" % str(address)
         )
 
-    def __init__(self, ip_address):
+    def __init__(self, ip_address: str):
         self.ip_address = ip_address
 
-    def _decode_pair(self, key, value):
+        self._settable_addresses = dict(
+            (v, int)
+            for k, v in vlxDevConstants.__dict__.items()
+            if any(r.match(k) for r in self.SETTABLE_INT_VALS)
+        )
+
+    def _decode_pair(self, key: str, value: Union[int,str]) -> Tuple[int, Union[int, float]]:
         try:
             address = int(getattr(vlxDevConstants, key, key))
         except ValueError:
             raise AttributeError("%s setting does not exist" % key)
         if "_TEMP_" in key:
             value = to_kelvin(float(value))
+        raw_value: Union[int, float]
         try:
             raw_value = int(value)
         except ValueError:
@@ -185,6 +211,7 @@ class Client:
             required_type = addresses[address]
         except KeyError:
             raise AttributeError("%s setting is not settable" % key)
+
         assert type(raw_value) == required_type, (
             "%s(%d) key needs to be an %s, but %s passed"
             % (key, address, required_type.__name__, type(raw_value).__name__)
@@ -192,35 +219,27 @@ class Client:
 
         return address, raw_value
 
-    async def _websocket_request(self, payload, read_packets=1):
-        try:
-            async with websockets.connect("ws://%s/" % self.ip_address) as ws:
-                await ws.send(payload)
-                results = []
-                for i in range(0, read_packets):
-                    r = await ws.recv()
+    @_websocket_exception_handler
+    async def _websocket_request(self, payload: bytes) -> bytes:
+        async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+            await ws.send(payload)
+            r: bytes = await ws.recv()
+            return r
 
-                    results.append(r)
-                return results[0] if read_packets == 1 else results
-        except websockets.InvalidHandshake as e:
-            raise ValloxWebsocketException("Websocket handshake failed") from e
-        except websockets.InvalidURI as e:
-            raise ValloxWebsocketException("Websocket invalid URI") from e
-        except websockets.PayloadTooBig as e:
-            raise ValloxWebsocketException("Websocket payload too big") from e
-        except websockets.InvalidState as e:
-            raise ValloxWebsocketException("Websocket invalid state") from e
-        except websockets.WebSocketProtocolError as e:
-            raise ValloxWebsocketException("Websocket protocol error") from e
+    @_websocket_exception_handler
+    async def _websocket_request_multiple(self, payload: bytes, read_packets: int) -> List[bytes]:
+        async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+            await ws.send(payload)
+            return await asyncio.gather(*[ws.recv() for _ in range(0, read_packets)])
 
-    async def fetch_metrics(self, metric_keys=None):
+    async def fetch_metrics(self, metric_keys: Optional[List[str]] = None) -> Dict[str, Union[int, float]]:
         metrics = {}
         payload = ReadTableRequest.build({})
         result = await self._websocket_request(payload)
 
         data = ReadTableResponse.parse(result)
 
-        if not metric_keys:
+        if metric_keys is None:
             metric_keys = vlxDevConstants.__dict__.keys()
 
         for key in metric_keys:
@@ -233,9 +252,9 @@ class Client:
 
         return metrics
 
-    async def fetch_raw_logs(self):
+    async def fetch_raw_logs(self) -> List[List[Dict[str, Union[int, float]]]]:
         payload = LogReadRequest.build({})
-        result = await self._websocket_request(payload, read_packets=2)
+        result = await self._websocket_request_multiple(payload, read_packets=2)
         page_count = LogReadResponse1.parse(result[0]).fields.value.pages
 
         expected_total_len = KPageSize * page_count
@@ -269,10 +288,10 @@ class Client:
 
         return series
 
-    async def fetch_metric(self, metric_key):
+    async def fetch_metric(self, metric_key: str) -> Optional[Union[int, float]]:
         return (await self.fetch_metrics([metric_key])).get(metric_key, None)
 
-    async def set_values(self, dict_):
+    async def set_values(self, dict_: Dict[str, Union[int,str]]) -> bool:
         items = []
         for key, value in dict_.items():
             address, raw_value = self._decode_pair(key, value)
