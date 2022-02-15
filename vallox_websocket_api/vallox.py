@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import logging
 from typing import Dict, Optional, Union
 from enum import IntEnum
@@ -227,3 +228,35 @@ class Vallox(Client):
             )
 
         await self.set_values({setting: temperature})
+
+    async def get_next_filter_change_date(self) -> Optional[date]:
+        """Returns the date for the next filter change.
+
+        :returns: next filter change date, or None if no date is available
+        """
+        s = await self.fetch_metrics(
+            [
+                "A_CYC_FILTER_CHANGED_YEAR",
+                "A_CYC_FILTER_CHANGED_MONTH",
+                "A_CYC_FILTER_CHANGED_DAY",
+                "A_CYC_FILTER_CHANGE_INTERVAL",
+            ]
+        )
+
+        if (
+            "A_CYC_FILTER_CHANGED_YEAR" not in s or
+            "A_CYC_FILTER_CHANGED_MONTH" not in s or
+            "A_CYC_FILTER_CHANGED_DAY" not in s or
+            "A_CYC_FILTER_CHANGE_INTERVAL" not in s
+        ):
+            return None
+
+        last_change_year = 2000 + int(s["A_CYC_FILTER_CHANGED_YEAR"])
+        last_change_month = int(s["A_CYC_FILTER_CHANGED_MONTH"])
+        last_change_day = int(s["A_CYC_FILTER_CHANGED_DAY"])
+        filter_change_interval_days = int(s["A_CYC_FILTER_CHANGE_INTERVAL"])
+
+        last_change_date = date(last_change_year, last_change_month, last_change_day)
+        filter_change_delta = timedelta(days=filter_change_interval_days)
+
+        return last_change_date + filter_change_delta
