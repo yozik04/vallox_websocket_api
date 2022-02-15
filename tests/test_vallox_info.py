@@ -33,8 +33,8 @@ class TestValloxInfo(asynctest.TestCase):
 
         info = await self.client.get_info()
 
-        self.assertEquals("Vallox 145 MV", info["model"])
-        self.assertEquals("2.0.2", info["sw_version"])
-        self.assertEquals("63580ebc-6358-0000-6358-635863586358", str(info["uuid"]))
+        self.assertEqual("Vallox 145 MV", info["model"])
+        self.assertEqual("2.0.2", info["sw_version"])
+        self.assertEqual("63580ebc-6358-0000-6358-635863586358", str(info["uuid"]))
 
         self.client.fetch_metrics.assert_called()
