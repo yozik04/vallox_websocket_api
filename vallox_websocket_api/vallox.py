@@ -94,6 +94,26 @@ def get_uuid(data: Dict[str, int]) -> UUID:
     return UUID(hex_string)
 
 
+def get_next_filter_change_date(data: Dict[str, int]) -> Optional[date]:
+    if (
+            "A_CYC_FILTER_CHANGED_YEAR" not in data or
+            "A_CYC_FILTER_CHANGED_MONTH" not in data or
+            "A_CYC_FILTER_CHANGED_DAY" not in data or
+            "A_CYC_FILTER_CHANGE_INTERVAL" not in data
+    ):
+        return None
+
+    last_change_year = 2000 + int(data["A_CYC_FILTER_CHANGED_YEAR"])
+    last_change_month = int(data["A_CYC_FILTER_CHANGED_MONTH"])
+    last_change_day = int(data["A_CYC_FILTER_CHANGED_DAY"])
+    filter_change_interval_days = int(data["A_CYC_FILTER_CHANGE_INTERVAL"])
+
+    last_change_date = date(last_change_year, last_change_month, last_change_day)
+    filter_change_delta = timedelta(days=filter_change_interval_days)
+
+    return last_change_date + filter_change_delta
+
+
 def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
@@ -243,20 +263,4 @@ class Vallox(Client):
             ]
         )
 
-        if (
-            "A_CYC_FILTER_CHANGED_YEAR" not in s or
-            "A_CYC_FILTER_CHANGED_MONTH" not in s or
-            "A_CYC_FILTER_CHANGED_DAY" not in s or
-            "A_CYC_FILTER_CHANGE_INTERVAL" not in s
-        ):
-            return None
-
-        last_change_year = 2000 + int(s["A_CYC_FILTER_CHANGED_YEAR"])
-        last_change_month = int(s["A_CYC_FILTER_CHANGED_MONTH"])
-        last_change_day = int(s["A_CYC_FILTER_CHANGED_DAY"])
-        filter_change_interval_days = int(s["A_CYC_FILTER_CHANGE_INTERVAL"])
-
-        last_change_date = date(last_change_year, last_change_month, last_change_day)
-        filter_change_delta = timedelta(days=filter_change_interval_days)
-
-        return last_change_date + filter_change_delta
+        return get_next_filter_change_date(s)
