@@ -120,7 +120,9 @@ def calculate_offset(aIndex: int) -> int:
     return offset - 1
 
 
-def to_celsius(value: int) -> float:
+def to_celsius(value: int) -> Union[float, None]:
+    if value == 0:
+        return None
     return round(value / 100.0 - 273.15, 1)
 
 
@@ -232,7 +234,7 @@ class Client:
             await ws.send(payload)
             return await asyncio.gather(*[ws.recv() for _ in range(0, read_packets)])
 
-    async def fetch_metrics(self, metric_keys: Optional[List[str]] = None) -> Dict[str, Union[int, float]]:
+    async def fetch_metrics(self, metric_keys: Optional[List[str]] = None) -> Dict[str, Union[int, float, None]]:
         metrics = {}
         payload = ReadTableRequest.build({})
         result = await self._websocket_request(payload)
@@ -247,6 +249,8 @@ class Client:
 
             if "_TEMP_" in key:
                 value = to_celsius(value)
+            elif value == 0xFFFF:
+                value = None
 
             metrics[key] = value
 
