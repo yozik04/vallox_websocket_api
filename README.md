@@ -1,3 +1,9 @@
+[![Test and Lint](https://github.com/yozik04/vallox_websocket_api/actions/workflows/test.yml/badge.svg)](https://github.com/yozik04/vallox_websocket_api/actions/workflows/test.yml)
+![PyPI - Status](https://img.shields.io/pypi/status/vallox_websocket_api)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/vallox_websocket_api)
+![PyPI](https://img.shields.io/pypi/v/vallox_websocket_api)
+![PyPI - License](https://img.shields.io/pypi/l/vallox_websocket_api)
+
 # vallox_websocket_api 2.0
 New async version of WebSocket API for Vallox ventilation units
 
@@ -16,8 +22,6 @@ Current code can:
 * Set unit profile and fan speeds
 * Fetch and decode metrics
 * Fetch temperature logs
-
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yozik04/vallox_websocket_api/Test)](https://github.com/yozik04/vallox_websocket_api/actions/workflows/python-test.yml)
 
 Your ventilation unit should be connected to LAN.
 
