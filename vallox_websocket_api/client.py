@@ -154,6 +154,7 @@ def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
 
 class Client:
     SETTABLE_INT_VALS = {
+        re.compile("^A_CYC_MODE$"),
         re.compile("^A_CYC_STATE$"),
         re.compile("^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$"),
         re.compile("^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$"),
