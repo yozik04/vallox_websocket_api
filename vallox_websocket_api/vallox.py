@@ -17,13 +17,16 @@ class PROFILE(IntEnum):
     FIREPLACE = 4
     EXTRA = 5
 
+PROFILE_TO_SET_TEMPERATURE_METRIC_MAP = {
+    PROFILE.HOME: "A_CYC_HOME_AIR_TEMP_TARGET",
+    PROFILE.AWAY: "A_CYC_AWAY_AIR_TEMP_TARGET",
+    PROFILE.BOOST: "A_CYC_BOOST_AIR_TEMP_TARGET",   
+}
 
-MAP = {
-    "temperature": {
-        PROFILE.HOME: "A_CYC_HOME_AIR_TEMP_TARGET",
-        PROFILE.AWAY: "A_CYC_AWAY_AIR_TEMP_TARGET",
-        PROFILE.BOOST: "A_CYC_BOOST_AIR_TEMP_TARGET",
-    }
+PROFILE_TO_SET_FAN_SPEED_METRIC_MAP = {
+    PROFILE.HOME: "A_CYC_HOME_SPEED_SETTING",
+    PROFILE.AWAY: "A_CYC_AWAY_SPEED_SETTING",
+    PROFILE.BOOST: "A_CYC_BOOST_SPEED_SETTING",
 }
 
 DEVICE_MODEL = [
@@ -231,7 +234,7 @@ class Vallox(Client):
 
     async def get_temperature(self, profile: PROFILE) -> float:
         try:
-            setting = MAP["temperature"][profile]
+            setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
         except KeyError:
             raise AttributeError(
                 "Temperature is not gettable for this profile: " + str(profile)
@@ -241,13 +244,34 @@ class Vallox(Client):
 
     async def set_temperature(self, profile: PROFILE, temperature: float) -> None:
         try:
-            setting = MAP["temperature"][profile]
+            setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
         except KeyError:
             raise AttributeError(
                 "Temperature is not settable for this profile: " + str(profile)
             )
 
         await self.set_values({setting: temperature})
+
+    async def get_fan_speed(self, profile: PROFILE) -> int:
+        try:
+            setting = PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]
+        except KeyError:
+            raise AttributeError(
+                "Fan speed is not gettable for this profile: " + str(profile)
+            )
+
+        return int(await self.fetch_metric(setting))
+
+    async def set_fan_speed(self, profile: PROFILE, percent: int) -> None:
+        try:
+            assert 0 <= percent <= 100, "Fan speed must be between 0 and 100"
+            setting = PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]
+        except KeyError:
+            raise AttributeError(
+                "Fan speed is not settable for this profile: " + str(profile)
+            )
+
+        await self.set_values({setting: percent})
 
     async def get_next_filter_change_date(self) -> Optional[date]:
         """Returns the date for the next filter change.

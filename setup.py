@@ -19,7 +19,7 @@ def read(filename, parent=None):
 setup(
     name="vallox_websocket_api",
     packages=["vallox_websocket_api"],
-    version="2.12.0",
+    version="2.13.0",
     python_requires=">=3.6.0, <4",
     description="Vallox WebSocket API",
     author="Jevgeni Kiski",
