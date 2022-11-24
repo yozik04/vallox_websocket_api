@@ -1,15 +1,24 @@
 import asyncio
-import re
 from functools import wraps
-from typing import Dict, Union, Tuple, List, Optional, Any, TypeVar, Callable, cast
+import re
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
 
 import websockets
 
 from .constants import vlxDevConstants, vlxOffsetObject
-from .exceptions import ValloxWebsocketException
-from .messages import (LogReadRequest, LogReadResponse1, LogReadResponse2,
-                       ReadTableRequest, ReadTableResponse,
-                       WriteMessageRequest)
+from .exceptions import (
+    ValloxApiException,
+    ValloxInvalidInputException,
+    ValloxWebsocketException,
+)
+from .messages import (
+    LogReadRequest,
+    LogReadResponse1,
+    LogReadResponse2,
+    ReadTableRequest,
+    ReadTableResponse,
+    WriteMessageRequest,
+)
 
 KPageSize = 65536
 
@@ -81,7 +90,7 @@ def calculate_offset(aIndex: int) -> int:
         aIndex <= vlxDevConstants.RANGE_END_g_cyclone_settings
     ):
         offset = (
-            (aIndex)  # noqa
+            (aIndex)
             - vlxDevConstants.RANGE_START_g_cyclone_settings
             + vlxOffsetObject.CYC_NUM_OF_CONFIGS
         )
@@ -97,7 +106,7 @@ def calculate_offset(aIndex: int) -> int:
         aIndex <= vlxDevConstants.RANGE_END_g_self_test
     ):
         offset = (
-            (aIndex)  # noqa
+            (aIndex)
             - vlxDevConstants.RANGE_START_g_self_test
             + vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS
         )
@@ -118,6 +127,10 @@ def calculate_offset(aIndex: int) -> int:
             + vlxOffsetObject.CYC_NUM_OF_FAULTS
         )
     return offset - 1
+
+
+MetricValue = Union[int, float, None]
+MetricDict = Dict[str, MetricValue]
 
 
 def to_celsius(value: int) -> Union[float, None]:
@@ -148,6 +161,8 @@ def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
             raise ValloxWebsocketException("Websocket invalid state") from e
         except websockets.WebSocketProtocolError as e:
             raise ValloxWebsocketException("Websocket protocol error") from e
+        except OSError as e:
+            raise ValloxWebsocketException("Websocket connection failed") from e
 
     return cast(FuncT, wrapped)
 
@@ -165,14 +180,21 @@ class Client:
 
     _settable_addresses: Dict[int, type]
 
+    def __init__(self, ip_address: str):
+        self.ip_address = ip_address
+
+        self._settable_addresses = {
+            v: int
+            for k, v in vlxDevConstants.__dict__.items()
+            if any(r.match(k) for r in self.SETTABLE_INT_VALS)
+        }
+
     def get_settable_addresses(self) -> Dict[int, type]:
         return self._settable_addresses
 
     def set_settable_address(self, address: Union[int, str], var_type: type) -> None:
         if var_type not in [int, float]:
-            raise AttributeError("Only float or int type are supported")
-
-        self.get_settable_addresses()  # populate _settable_addresses
+            raise ValloxInvalidInputException("Only float or int types are supported")
 
         if type(address) == int:
             self._settable_addresses[address] = var_type
@@ -183,24 +205,17 @@ class Client:
                 self._settable_addresses[key] = var_type
                 return
 
-        raise AttributeError(
-            "Unable to add address '%s' to settable list" % str(address)
+        raise ValloxInvalidInputException(
+            f"Unable to add address '{address}' to settable list"
         )
 
-    def __init__(self, ip_address: str):
-        self.ip_address = ip_address
+    def _encode_pair(
+        self, key: str, value: Union[int, float, str]
+    ) -> Tuple[int, Union[int, float]]:
+        address = int(getattr(vlxDevConstants, key, key))
+        addresses = self.get_settable_addresses()
+        assert address in addresses, f"{key} setting is not settable"
 
-        self._settable_addresses = dict(
-            (v, int)
-            for k, v in vlxDevConstants.__dict__.items()
-            if any(r.match(k) for r in self.SETTABLE_INT_VALS)
-        )
-
-    def _decode_pair(self, key: str, value: Union[int,str]) -> Tuple[int, Union[int, float]]:
-        try:
-            address = int(getattr(vlxDevConstants, key, key))
-        except ValueError:
-            raise AttributeError("%s setting does not exist" % key)
         if "_TEMP_" in key:
             value = to_kelvin(float(value))
         raw_value: Union[int, float]
@@ -209,33 +224,32 @@ class Client:
         except ValueError:
             raw_value = float(value)
 
-        addresses = self.get_settable_addresses()
-        try:
-            required_type = addresses[address]
-        except KeyError:
-            raise AttributeError("%s setting is not settable" % key)
+        required_type = addresses[address]
 
-        assert type(raw_value) == required_type, (
-            "%s(%d) key needs to be an %s, but %s passed"
-            % (key, address, required_type.__name__, type(raw_value).__name__)
-        )
+        assert (
+            type(raw_value) == required_type
+        ), f"{key}({address}) key needs to be an {required_type.__name__}, but {type(raw_value).__name__} passed"
 
         return address, raw_value
 
     @_websocket_exception_handler
     async def _websocket_request(self, payload: bytes) -> bytes:
-        async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+        async with websockets.connect(f"ws://{self.ip_address}/") as ws:
             await ws.send(payload)
             r: bytes = await ws.recv()
             return r
 
     @_websocket_exception_handler
-    async def _websocket_request_multiple(self, payload: bytes, read_packets: int) -> List[bytes]:
-        async with websockets.connect("ws://%s/" % self.ip_address) as ws:
+    async def _websocket_request_multiple(
+        self, payload: bytes, read_packets: int
+    ) -> List[bytes]:
+        async with websockets.connect(f"ws://{self.ip_address}/") as ws:
             await ws.send(payload)
             return await asyncio.gather(*[ws.recv() for _ in range(0, read_packets)])
 
-    async def fetch_metrics(self, metric_keys: Optional[List[str]] = None) -> Dict[str, Union[int, float, None]]:
+    async def fetch_metrics(
+        self, metric_keys: Optional[List[str]] = None
+    ) -> MetricDict:
         metrics = {}
         payload = ReadTableRequest.build({})
         result = await self._websocket_request(payload)
@@ -265,10 +279,10 @@ class Client:
         expected_total_len = KPageSize * page_count
         result1_len = len(result[1])
 
-        assert expected_total_len == result1_len, "Response is not full %d/%d" % (
-            result1_len,
-            expected_total_len,
-        )
+        if expected_total_len != result1_len:
+            raise ValloxApiException(
+                f"Response is not full {result1_len}/{expected_total_len}"
+            )
 
         pages = (result[1][i : i + KPageSize] for i in range(0, result1_len, KPageSize))
 
@@ -293,14 +307,18 @@ class Client:
 
         return series
 
-    async def fetch_metric(self, metric_key: str) -> Optional[Union[int, float]]:
+    async def fetch_metric(self, metric_key: str) -> MetricValue:
         return (await self.fetch_metrics([metric_key])).get(metric_key, None)
 
-    async def set_values(self, dict_: Dict[str, Union[int,str]]) -> bool:
+    async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> bool:
         items = []
         for key, value in dict_.items():
-            address, raw_value = self._decode_pair(key, value)
-            items.append({"address": address, "value": raw_value})
+            try:
+                assert value is not None, "Value cannot be None"
+                address, raw_value = self._encode_pair(key, value)
+                items.append({"address": address, "value": raw_value})
+            except (ValueError, AssertionError) as e:
+                raise ValloxInvalidInputException(f"Unable to encode {key}") from e
 
         items.sort(key=lambda x: x["address"])
         payload = WriteMessageRequest.build({"fields": {"value": {"items": items}}})

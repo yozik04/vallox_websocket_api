@@ -1,12 +1,14 @@
 from datetime import date, timedelta
+from enum import IntEnum
 import logging
 from typing import Dict, Optional, Union
-from enum import IntEnum
 from uuid import UUID
 
-from .client import Client
+from vallox_websocket_api.exceptions import ValloxInvalidInputException
 
-logger = logging.getLogger('vallox').getChild(__name__)
+from .client import Client, MetricDict
+
+logger = logging.getLogger("vallox").getChild(__name__)
 
 
 class PROFILE(IntEnum):
@@ -17,10 +19,11 @@ class PROFILE(IntEnum):
     FIREPLACE = 4
     EXTRA = 5
 
+
 PROFILE_TO_SET_TEMPERATURE_METRIC_MAP = {
     PROFILE.HOME: "A_CYC_HOME_AIR_TEMP_TARGET",
     PROFILE.AWAY: "A_CYC_AWAY_AIR_TEMP_TARGET",
-    PROFILE.BOOST: "A_CYC_BOOST_AIR_TEMP_TARGET",   
+    PROFILE.BOOST: "A_CYC_BOOST_AIR_TEMP_TARGET",
 }
 
 PROFILE_TO_SET_FAN_SPEED_METRIC_MAP = {
@@ -73,36 +76,38 @@ DEVICE_MODEL = [
     "DV51K Adroit",
 ]
 
-SW_VERSION_METRICS = ["A_CYC_APPL_SW_VERSION_%d" % i for i in range(1, 10)]
-UUID_METRICS = ["A_CYC_UUID{}".format(i) for i in range(0, 8)]
+SW_VERSION_METRICS = [f"A_CYC_APPL_SW_VERSION_{i}" for i in range(1, 10)]
+UUID_METRICS = [f"A_CYC_UUID{i}" for i in range(0, 8)]
 MODEL_METRIC = "A_CYC_MACHINE_MODEL"
 
 
-def get_model(data: Dict[str, int]) -> str:
+def get_model(data: MetricDict) -> Optional[str]:
+    model_index = data[MODEL_METRIC]
+    if isinstance(model_index, int) and model_index < len(DEVICE_MODEL):
+        return DEVICE_MODEL[model_index]
+
+    return "Unknown"
+
+
+def get_sw_version(data: MetricDict) -> str:
     try:
-        model = DEVICE_MODEL[data[MODEL_METRIC]]
-    except IndexError:
-        model = None
-
-    return model or "Unknown"
+        return ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(".0")
+    except TypeError:
+        return "Unknown"
 
 
-def get_sw_version(data: Dict[str, int]) -> str:
-    return ".".join(str(swap16(data[m])) for m in SW_VERSION_METRICS).lstrip(".0")
-
-
-def get_uuid(data: Dict[str, int]) -> UUID:
+def get_uuid(data: MetricDict) -> UUID:
     int_values = [data[m] for m in UUID_METRICS]
-    hex_string = "".join("{0:04x}".format(i) for i in int_values)
+    hex_string = "".join(f"{i:04x}" for i in int_values)
     return UUID(hex_string)
 
 
-def get_next_filter_change_date(data: Dict[str, int]) -> Optional[date]:
+def get_next_filter_change_date(data: MetricDict) -> Optional[date]:
     if (
-            "A_CYC_FILTER_CHANGED_YEAR" not in data or
-            "A_CYC_FILTER_CHANGED_MONTH" not in data or
-            "A_CYC_FILTER_CHANGED_DAY" not in data or
-            "A_CYC_FILTER_CHANGE_INTERVAL" not in data
+        data.get("A_CYC_FILTER_CHANGED_YEAR") is None
+        or data.get("A_CYC_FILTER_CHANGED_MONTH") is None
+        or data.get("A_CYC_FILTER_CHANGED_DAY") is None
+        or data.get("A_CYC_FILTER_CHANGE_INTERVAL") is None
     ):
         return None
 
@@ -127,7 +132,7 @@ class Vallox(Client):
 
         :returns: One of PROFILE.* values or PROFILE.NONE if unknown
         """
-        s = await self.fetch_metrics(
+        metrics = await self.fetch_metrics(
             [
                 "A_CYC_STATE",
                 "A_CYC_BOOST_TIMER",
@@ -136,19 +141,30 @@ class Vallox(Client):
             ]
         )
 
-        if s["A_CYC_BOOST_TIMER"] > 0:
+        if (
+            metrics["A_CYC_BOOST_TIMER"] is not None
+            and metrics["A_CYC_BOOST_TIMER"] > 0
+        ):
             return PROFILE.BOOST
-        if s["A_CYC_FIREPLACE_TIMER"] > 0:
+        if (
+            metrics["A_CYC_FIREPLACE_TIMER"] is not None
+            and metrics["A_CYC_FIREPLACE_TIMER"] > 0
+        ):
             return PROFILE.FIREPLACE
-        if s["A_CYC_EXTRA_TIMER"] > 0:
+        if (
+            metrics["A_CYC_EXTRA_TIMER"] is not None
+            and metrics["A_CYC_EXTRA_TIMER"] > 0
+        ):
             return PROFILE.EXTRA
-        if s["A_CYC_STATE"] == 1:
+        if metrics["A_CYC_STATE"] == 1:
             return PROFILE.AWAY
-        elif s["A_CYC_STATE"] == 0:
+        elif metrics["A_CYC_STATE"] == 0:
             return PROFILE.HOME
         return PROFILE.NONE
 
-    async def set_profile(self, profile: PROFILE, duration: Optional[int] = None) -> None:
+    async def set_profile(
+        self, profile: PROFILE, duration: Optional[int] = None
+    ) -> None:
         set_duration = None
         if duration is not None and 0 <= int(duration) <= 65535:
             set_duration = int(duration)
@@ -187,7 +203,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_FIREPLACE_TIME"))
-            logger.info("Setting unit to FIREPLACE profile for %s minutes", dur)
+            logger.info(f"Setting unit to FIREPLACE profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": "0",
@@ -200,7 +216,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_BOOST_TIME"))
-            logger.info("Setting unit to BOOST profile for %s minutes", dur)
+            logger.info(f"Setting unit to BOOST profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": dur,
@@ -213,7 +229,7 @@ class Vallox(Client):
                 dur = str(set_duration)
             else:
                 dur = str(await self.fetch_metric("A_CYC_EXTRA_TIME"))
-                logger.info("Setting unit to EXTRA profile for %s minutes", dur)
+                logger.info(f"Setting unit to EXTRA profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": "0",
@@ -232,53 +248,56 @@ class Vallox(Client):
             "uuid": get_uuid(data),
         }
 
-    async def get_temperature(self, profile: PROFILE) -> float:
-        try:
-            setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
-        except KeyError:
-            raise AttributeError(
-                "Temperature is not gettable for this profile: " + str(profile)
+    async def get_temperature(self, profile: PROFILE) -> Optional[float]:
+        if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Temperature is not gettable for profile: {profile}"
             )
+        setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
 
-        return float(await self.fetch_metric(setting))
+        value = await self.fetch_metric(setting)
+        if value is None:
+            return None
+
+        return float(value)
 
     async def set_temperature(self, profile: PROFILE, temperature: float) -> None:
-        try:
-            setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
-        except KeyError:
-            raise AttributeError(
-                "Temperature is not settable for this profile: " + str(profile)
+        if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Temperature is not settable for profile: {profile}"
             )
+        setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
 
         await self.set_values({setting: temperature})
 
-    async def get_fan_speed(self, profile: PROFILE) -> int:
-        try:
-            setting = PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]
-        except KeyError:
-            raise AttributeError(
-                "Fan speed is not gettable for this profile: " + str(profile)
+    async def get_fan_speed(self, profile: PROFILE) -> Optional[int]:
+        if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Fan speed is not gettable for profile: {profile}"
             )
 
-        return int(await self.fetch_metric(setting))
+        value = await self.fetch_metric(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
+        if value is None:
+            return None
+        return int(value)
 
     async def set_fan_speed(self, profile: PROFILE, percent: int) -> None:
-        try:
-            assert 0 <= percent <= 100, "Fan speed must be between 0 and 100"
-            setting = PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]
-        except KeyError:
-            raise AttributeError(
-                "Fan speed is not settable for this profile: " + str(profile)
+        if percent < 0 or percent > 100:
+            raise ValloxInvalidInputException("Fan speed must be between 0 and 100")
+
+        if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Fan speed is not settable for profile: {profile}"
             )
 
-        await self.set_values({setting: percent})
+        await self.set_values({PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]: percent})
 
     async def get_next_filter_change_date(self) -> Optional[date]:
         """Returns the date for the next filter change.
 
         :returns: next filter change date, or None if no date is available
         """
-        s = await self.fetch_metrics(
+        metrics = await self.fetch_metrics(
             [
                 "A_CYC_FILTER_CHANGED_YEAR",
                 "A_CYC_FILTER_CHANGED_MONTH",
@@ -287,4 +306,4 @@ class Vallox(Client):
             ]
         )
 
-        return get_next_filter_change_date(s)
+        return get_next_filter_change_date(metrics)

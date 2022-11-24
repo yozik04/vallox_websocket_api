@@ -4,9 +4,13 @@ import asynctest
 from asynctest import CoroutineMock
 from websockets.exceptions import InvalidMessage
 
-from tests.decorators import with_client
-from vallox_websocket_api.exceptions import ValloxWebsocketException
 from vallox_websocket_api.client import Client
+from vallox_websocket_api.exceptions import (
+    ValloxInvalidInputException,
+    ValloxWebsocketException,
+)
+
+from tests.decorators import with_client
 
 
 class TestClient(asynctest.TestCase):
@@ -75,30 +79,30 @@ class TestClient(asynctest.TestCase):
     async def testSetAssertion(self, client: Client, ws):
         ws.recv.return_value = binascii.unhexlify("0200f500f700")
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_BOOST_TIMER": "11.2"})
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_BOOST_AIR_TEMP_TARGET": "11.a"})
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_BOOST_SPEED_SETTING": "11.2"})
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_FIREPLACE_SUPP_FAN": "11.2"})
 
     @with_client
     async def testSetMissing(self, client: Client, ws):
         ws.recv.return_value = binascii.unhexlify("0200f500f700")
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_BOOSTER": 10})
 
     @with_client
     async def testSetUnsettable(self, client: Client, ws):
         ws.recv.return_value = binascii.unhexlify("0200f500f700")
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(ValloxInvalidInputException):
             await client.set_values({"A_CYC_RH_VALUE": 22})
 
     @with_client
