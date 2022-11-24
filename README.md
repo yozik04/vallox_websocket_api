@@ -4,7 +4,7 @@
 ![PyPI](https://img.shields.io/pypi/v/vallox_websocket_api)
 ![PyPI - License](https://img.shields.io/pypi/l/vallox_websocket_api)
 
-# vallox_websocket_api 2.0
+# vallox_websocket_api
 New async version of WebSocket API for Vallox ventilation units
 
 Old sync version is available [1.5.x](https://pypi.org/project/vallox-websocket-api/1.5.2/)
@@ -63,11 +63,11 @@ Code uses next libraries
 # Installation
 
     pip install vallox-websocket-api
-    
+
     # or
 
     pip install git+https://github.com/yozik04/vallox_websocket_api
-    
+
     # for old version for Python 2.7
     pip install 'vallox-websocket-api>=1.5.0,<2.0.0'
 
@@ -109,10 +109,10 @@ client = Client('192.168.1.2')
 
 async def run():
     metrics = await client.fetch_metrics()
-    
+
     from pprint import pprint
     pprint(metrics)
-    
+
 asyncio.get_event_loop().run_until_complete(run())
 ```
 
@@ -131,7 +131,7 @@ async def run():
       'A_CYC_TEMP_SUPPLY_AIR',
       'A_CYC_TEMP_SUPPLY_CELL_AIR'
     ])
-    
+
     from pprint import pprint
     pprint(metrics)
 asyncio.get_event_loop().run_until_complete(run())
@@ -148,7 +148,7 @@ from vallox_websocket_api import Client
 client = Client('192.168.1.2')
 async def run():
     data = await client.fetch_raw_logs()
-    
+
     from pprint import pprint
     pprint(data)
 asyncio.get_event_loop().run_until_complete(run())
@@ -166,40 +166,40 @@ client = Client('192.168.9.106')
 async def run():
     # Setting Home profile fan speed
     await client.set_values({'A_CYC_HOME_SPEED_SETTING': 10})
-    
+
     # Setting Home profile target temperature
     await client.set_values({'A_CYC_HOME_AIR_TEMP_TARGET': 15})
-    
-    
+
+
     # Setting Away profile fan speed
     await client.set_values({'A_CYC_AWAY_SPEED_SETTING': 10})
-    
+
     # Setting Away profile target temperature
     await client.set_values({'A_CYC_AWAY_AIR_TEMP_TARGET': 15})
-    
-    
+
+
     # Setting Boost profile fan speed
     await client.set_values({'A_CYC_BOOST_SPEED_SETTING': 10})
-    
+
     # Setting Boost profile target temperature
     await client.set_values({'A_CYC_BOOST_AIR_TEMP_TARGET': 15})
-    
+
     # Setting Boost profile timer
     await client.set_values({
       'A_CYC_BOOST_TIMER': 30, #Minutes
     })
-    
+
     # Setting Fireplace profile fan speeds
     await client.set_values({
       'A_CYC_FIREPLACE_EXTR_FAN': 50,
       'A_CYC_FIREPLACE_SUPP_FAN': 50
     })
-    
+
     # Setting Fireplace profile timer
     await client.set_values({
       'A_CYC_FIREPLACE_TIMER': 15, #Minutes
     })
-    
+
 asyncio.get_event_loop().run_until_complete(run())
 ```
 
