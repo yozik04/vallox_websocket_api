@@ -94,3 +94,8 @@ ENV/
 
 # other
 .DS_Store
+/html
+.mutmut-cache
+/Makefile
+/bin
+/service
