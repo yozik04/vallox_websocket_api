@@ -1,38 +1,26 @@
 import struct
 
-import asynctest
 
-from tests.decorators import with_client
-
-
-class TestClient(asynctest.TestCase):
+async def testSetHomeAirTempTargetRawInt(client, ws):
     # [4, 249, 20508, 29215, 49976]
-    @with_client
-    async def testSetHomeAirTempTargetRawInt(self, client, ws):
-        ws.recv.return_value = b""
+    ws.recv.return_value = b""
 
-        await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": 19})
+    await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": 19})
 
-        ws.send.assert_called_once_with(
-            struct.pack("HHHHH", 4, 249, 20508, 29215, 49976)
-        )
+    ws.send.assert_called_once_with(struct.pack("HHHHH", 4, 249, 20508, 29215, 49976))
 
-    @with_client
-    async def testSetHomeAirTempTargetRawFloat(self, client, ws):
-        ws.recv.return_value = b""
 
-        await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": 19.0})
+async def testSetHomeAirTempTargetRawFloat(client, ws):
+    ws.recv.return_value = b""
 
-        ws.send.assert_called_once_with(
-            struct.pack("HHHHH", 4, 249, 20508, 29215, 49976)
-        )
+    await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": 19.0})
 
-    @with_client
-    async def testSetHomeAirTempTargetRawString(self, client, ws):
-        ws.recv.return_value = b""
+    ws.send.assert_called_once_with(struct.pack("HHHHH", 4, 249, 20508, 29215, 49976))
 
-        await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": "19"})
 
-        ws.send.assert_called_once_with(
-            struct.pack("HHHHH", 4, 249, 20508, 29215, 49976)
-        )
+async def testSetHomeAirTempTargetRawString(client, ws):
+    ws.recv.return_value = b""
+
+    await client.set_values({"A_CYC_HOME_AIR_TEMP_TARGET": "19"})
+
+    ws.send.assert_called_once_with(struct.pack("HHHHH", 4, 249, 20508, 29215, 49976))
