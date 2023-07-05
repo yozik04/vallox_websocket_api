@@ -125,7 +125,7 @@ async def test_connection_closed_ws_exception(client: Client, ws):
     assert ws.send.call_count == 5
 
 
-async def test_ws_timeout_exception(client: Client, ws):
+async def test_ws_recv_timeout_exception(client: Client, ws):
     ws.recv.side_effect = AsyncMock(side_effect=asyncio.TimeoutError())
 
     with pytest.raises(ValloxWebsocketException):
@@ -142,3 +142,13 @@ async def test_invalid_ws_url_exception(client: Client):
             await client.fetch_metric("A_CYC_ENABLED")
 
         assert connect.call_count == 1
+
+
+async def test_ws_connection_timeout_exception(client: Client):
+    with patch("websockets.connect") as connect:
+        connect.side_effect = asyncio.TimeoutError()
+
+        with pytest.raises(ValloxWebsocketException):
+            await client.fetch_metric("A_CYC_ENABLED")
+
+        assert connect.call_count == 5
