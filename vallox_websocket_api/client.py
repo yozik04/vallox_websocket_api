@@ -1,5 +1,6 @@
 import asyncio
 from functools import wraps
+import logging
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
 
@@ -20,7 +21,13 @@ from .messages import (
     WriteMessageRequest,
 )
 
+logger = logging.getLogger("vallox").getChild(__name__)
+
 KPageSize = 65536
+
+WEBSOCKETS_OPEN_TIMEOUT = 1
+WEBSOCKETS_RECV_TIMEOUT = 1
+WEBSOCKET_RETRY_DELAYS = [0.1, 0.2, 0.5, 1]
 
 
 def calculate_offset(aIndex: int) -> int:
@@ -146,11 +153,28 @@ def to_kelvin(value: float) -> int:
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 
-def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
+def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
+    retry_on_exceptions = (
+        websockets.InvalidHandshake,
+        websockets.InvalidState,
+        websockets.WebSocketProtocolError,
+        websockets.ConnectionClosed,
+        OSError,
+        asyncio.TimeoutError,
+    )
+
     @wraps(request_fn)
     async def wrapped(*args: Any, **kwargs: Any) -> Any:
         try:
-            return await request_fn(*args, **kwargs)
+            delays = WEBSOCKET_RETRY_DELAYS.copy()
+            while len(delays) >= 0:
+                try:
+                    return await request_fn(*args, **kwargs)
+                except Exception as e:
+                    if isinstance(e, retry_on_exceptions) and len(delays) > 0:
+                        await asyncio.sleep(delays.pop(0))
+                    else:
+                        raise e
         except websockets.InvalidHandshake as e:
             raise ValloxWebsocketException("Websocket handshake failed") from e
         except websockets.InvalidURI as e:
@@ -161,8 +185,12 @@ def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
             raise ValloxWebsocketException("Websocket invalid state") from e
         except websockets.WebSocketProtocolError as e:
             raise ValloxWebsocketException("Websocket protocol error") from e
+        except websockets.ConnectionClosed as e:
+            raise ValloxWebsocketException("Websocket connection closed") from e
         except OSError as e:
             raise ValloxWebsocketException("Websocket connection failed") from e
+        except asyncio.TimeoutError as e:
+            raise ValloxWebsocketException("Websocket connection timed out") from e
 
     return cast(FuncT, wrapped)
 
@@ -232,20 +260,26 @@ class Client:
 
         return address, raw_value
 
-    @_websocket_exception_handler
     async def _websocket_request(self, payload: bytes) -> bytes:
-        async with websockets.connect(f"ws://{self.ip_address}/") as ws:
-            await ws.send(payload)
-            r: bytes = await ws.recv()
-            return r
+        return (await self._websocket_request_multiple(payload, 1))[0]
 
-    @_websocket_exception_handler
+    @_websocket_retry_wrapper
     async def _websocket_request_multiple(
         self, payload: bytes, read_packets: int
     ) -> List[bytes]:
-        async with websockets.connect(f"ws://{self.ip_address}/") as ws:
+        async with websockets.connect(
+            f"ws://{self.ip_address}/",
+            open_timeout=WEBSOCKETS_OPEN_TIMEOUT,
+            logger=logger,
+        ) as ws:
             await ws.send(payload)
-            return await asyncio.gather(*[ws.recv() for _ in range(0, read_packets)])
+
+            async def _get_responses() -> List[bytes]:
+                return [await ws.recv() for _ in range(0, read_packets)]
+
+            return await asyncio.wait_for(
+                _get_responses(), timeout=WEBSOCKETS_RECV_TIMEOUT * read_packets
+            )
 
     async def fetch_metrics(
         self, metric_keys: Optional[List[str]] = None

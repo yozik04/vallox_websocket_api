@@ -1,7 +1,9 @@
+import asyncio
 import binascii
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
+import websockets
 from websockets.exceptions import InvalidMessage
 
 from vallox_websocket_api.client import Client
@@ -110,3 +112,43 @@ async def test_set_new_settable_address_by_address_exception(client: Client, ws)
 
     with pytest.raises(ValloxWebsocketException):
         await client.set_values({"A_CYC_RH_VALUE": 22})
+
+    assert ws.send.call_count == 5
+
+
+async def test_connection_closed_ws_exception(client: Client, ws):
+    ws.recv.side_effect = AsyncMock(side_effect=websockets.ConnectionClosed(None, None))
+
+    with pytest.raises(ValloxWebsocketException):
+        await client.fetch_metric("A_CYC_ENABLED")
+
+    assert ws.send.call_count == 5
+
+
+async def test_ws_recv_timeout_exception(client: Client, ws):
+    ws.recv.side_effect = AsyncMock(side_effect=asyncio.TimeoutError())
+
+    with pytest.raises(ValloxWebsocketException):
+        await client.fetch_metric("A_CYC_ENABLED")
+
+    assert ws.send.call_count == 5
+
+
+async def test_invalid_ws_url_exception(client: Client):
+    with patch("websockets.connect") as connect:
+        connect.side_effect = websockets.InvalidURI("test", "test")
+
+        with pytest.raises(ValloxWebsocketException):
+            await client.fetch_metric("A_CYC_ENABLED")
+
+        assert connect.call_count == 1
+
+
+async def test_ws_connection_timeout_exception(client: Client):
+    with patch("websockets.connect") as connect:
+        connect.side_effect = asyncio.TimeoutError()
+
+        with pytest.raises(ValloxWebsocketException):
+            await client.fetch_metric("A_CYC_ENABLED")
+
+        assert connect.call_count == 5
