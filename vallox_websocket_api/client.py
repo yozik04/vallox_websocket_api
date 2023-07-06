@@ -153,7 +153,7 @@ def to_kelvin(value: float) -> int:
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 
-def _websocket_exception_handler(request_fn: FuncT) -> FuncT:
+def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
     retry_on_exceptions = (
         websockets.InvalidHandshake,
         websockets.InvalidState,
@@ -260,18 +260,10 @@ class Client:
 
         return address, raw_value
 
-    @_websocket_exception_handler
     async def _websocket_request(self, payload: bytes) -> bytes:
-        async with websockets.connect(
-            f"ws://{self.ip_address}/",
-            open_timeout=WEBSOCKETS_OPEN_TIMEOUT,
-            logger=logger,
-        ) as ws:
-            await ws.send(payload)
-            task = asyncio.create_task(ws.recv())
-            return await asyncio.wait_for(task, timeout=WEBSOCKETS_RECV_TIMEOUT)
+        return (await self._websocket_request_multiple(payload, 1))[0]
 
-    @_websocket_exception_handler
+    @_websocket_retry_wrapper
     async def _websocket_request_multiple(
         self, payload: bytes, read_packets: int
     ) -> List[bytes]:
@@ -281,8 +273,13 @@ class Client:
             logger=logger,
         ) as ws:
             await ws.send(payload)
-            tasks = asyncio.gather(*[ws.recv() for _ in range(0, read_packets)])
-            return await asyncio.wait_for(tasks, timeout=WEBSOCKETS_RECV_TIMEOUT)
+
+            async def _get_responses() -> List[bytes]:
+                return [await ws.recv() for _ in range(0, read_packets)]
+
+            return await asyncio.wait_for(
+                _get_responses(), timeout=WEBSOCKETS_RECV_TIMEOUT * read_packets
+            )
 
     async def fetch_metrics(
         self, metric_keys: Optional[List[str]] = None
