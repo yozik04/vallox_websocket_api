@@ -1,10 +1,10 @@
 import asyncio
 from collections import defaultdict
 from functools import cached_property
-from importlib.abc import Traversable
 from importlib.resources import files
 import json
 import logging
+from pathlib import Path
 import re
 from typing import Optional
 
@@ -55,7 +55,7 @@ class DataModel:
         except Exception as ex:
             raise DataModelReadException(f"Failed to read model from {url}") from ex
 
-    async def read_model_from_js_file(self, js_file: Traversable) -> None:
+    async def read_model_from_js_file(self, js_file: Path) -> None:
         try:
             data = await asyncio.get_running_loop().run_in_executor(
                 None, js_file.read_text
