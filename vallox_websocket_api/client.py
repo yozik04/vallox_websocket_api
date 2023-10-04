@@ -4,7 +4,15 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
 
-import websockets
+import websockets.client
+from websockets.exceptions import (
+    ConnectionClosed,
+    InvalidHandshake,
+    InvalidState,
+    InvalidURI,
+    PayloadTooBig,
+    ProtocolError,
+)
 
 from .constants import vlxDevConstants, vlxOffsetObject
 from .exceptions import (
@@ -31,109 +39,76 @@ WEBSOCKET_RETRY_DELAYS = [0.1, 0.2, 0.5, 1]
 
 
 def calculate_offset(aIndex: int) -> int:
-    offset = 0
+    range_to_offset = {
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_general_info,
+            vlxDevConstants.RANGE_END_g_cyclone_general_info + 1,
+        ): 1,
+        range(
+            vlxDevConstants.RANGE_START_g_typhoon_general_info,
+            vlxDevConstants.RANGE_END_g_typhoon_general_info + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_GENERAL_INFO,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_hw_state,
+            vlxDevConstants.RANGE_END_g_cyclone_hw_state + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_GENERAL_TYP_INFO,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_sw_state,
+            vlxDevConstants.RANGE_END_g_cyclone_sw_state + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_HW_STATES,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_time,
+            vlxDevConstants.RANGE_END_g_cyclone_time + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_SW_STATES,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_output,
+            vlxDevConstants.RANGE_END_g_cyclone_output + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_TIME_ELEMENTS,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_input,
+            vlxDevConstants.RANGE_END_g_cyclone_input + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_OUTPUTS,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_config,
+            vlxDevConstants.RANGE_END_g_cyclone_config + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_INPUTS,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_settings,
+            vlxDevConstants.RANGE_END_g_cyclone_settings + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_CONFIGS,
+        range(
+            vlxDevConstants.RANGE_START_g_typhoon_settings,
+            vlxDevConstants.RANGE_END_g_typhoon_settings + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_CYC_SETTINGS,
+        range(
+            vlxDevConstants.RANGE_START_g_self_test,
+            vlxDevConstants.RANGE_END_g_self_test + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS,
+        range(
+            vlxDevConstants.RANGE_START_g_faults, vlxDevConstants.RANGE_END_g_faults + 1
+        ): vlxOffsetObject.CYC_NUM_OF_SELF_TESTS,
+        range(
+            vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule,
+            vlxDevConstants.RANGE_END_g_cyclone_weekly_schedule + 1,
+        ): vlxOffsetObject.CYC_NUM_OF_FAULTS,
+    }
+    if (
+        hasattr(vlxDevConstants, "RANGE_START_g_cyclone_extended")
+        and hasattr(vlxDevConstants, "RANGE_END_g_cyclone_extended")
+        and hasattr(vlxOffsetObject, "CYC_NUM_OF_SCHEDULED_EVENTS")
+    ):
+        range_to_offset[
+            range(
+                vlxDevConstants.RANGE_START_g_cyclone_extended,
+                vlxDevConstants.RANGE_END_g_cyclone_extended + 1,
+            )
+        ] = vlxOffsetObject.CYC_NUM_OF_SCHEDULED_EVENTS
 
-    if (aIndex > vlxDevConstants.RANGE_START_g_cyclone_general_info) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_general_info
-    ):
-        offset = aIndex + 1
-    elif (aIndex > vlxDevConstants.RANGE_START_g_typhoon_general_info) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_typhoon_general_info
-    ):
-        offset = (
-            aIndex
-            - vlxDevConstants.RANGE_START_g_typhoon_general_info
-            + vlxOffsetObject.CYC_NUM_OF_GENERAL_INFO
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_hw_state) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_hw_state
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_hw_state
-            + vlxOffsetObject.CYC_NUM_OF_GENERAL_TYP_INFO
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_sw_state) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_sw_state
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_sw_state
-            + vlxOffsetObject.CYC_NUM_OF_HW_STATES
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_time) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_time
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_time
-            + vlxOffsetObject.CYC_NUM_OF_SW_STATES
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_output) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_output
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_output
-            + vlxOffsetObject.CYC_NUM_OF_TIME_ELEMENTS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_input) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_input
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_input
-            + vlxOffsetObject.CYC_NUM_OF_OUTPUTS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_config) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_config
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_config
-            + vlxOffsetObject.CYC_NUM_OF_INPUTS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_settings) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_settings
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_settings
-            + vlxOffsetObject.CYC_NUM_OF_CONFIGS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_typhoon_settings) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_typhoon_settings
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_typhoon_settings
-            + vlxOffsetObject.CYC_NUM_OF_CYC_SETTINGS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_self_test) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_self_test
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_self_test
-            + vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_faults) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_faults
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_faults
-            + vlxOffsetObject.CYC_NUM_OF_SELF_TESTS
-        )
-    elif (aIndex > vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule) and (
-        aIndex <= vlxDevConstants.RANGE_END_g_cyclone_weekly_schedule
-    ):
-        offset = (
-            (aIndex)
-            - vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule
-            + vlxOffsetObject.CYC_NUM_OF_FAULTS
-        )
-    return offset - 1
+    for r, offset in range_to_offset.items():
+        if aIndex in r:
+            return aIndex - r.start + offset - 1
+
+    return 0
 
 
 MetricValue = Union[int, float, None]
@@ -155,10 +130,10 @@ FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
     retry_on_exceptions = (
-        websockets.InvalidHandshake,
-        websockets.InvalidState,
-        websockets.WebSocketProtocolError,
-        websockets.ConnectionClosed,
+        InvalidHandshake,
+        InvalidState,
+        ProtocolError,
+        ConnectionClosed,
         OSError,
         asyncio.TimeoutError,
     )
@@ -170,27 +145,27 @@ def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
             while len(delays) >= 0:
                 try:
                     return await request_fn(*args, **kwargs)
-                except Exception as e:
-                    if isinstance(e, retry_on_exceptions) and len(delays) > 0:
+                except Exception as ex:
+                    if isinstance(ex, retry_on_exceptions) and len(delays) > 0:
                         await asyncio.sleep(delays.pop(0))
                     else:
-                        raise e
-        except websockets.InvalidHandshake as e:
-            raise ValloxWebsocketException("Websocket handshake failed") from e
-        except websockets.InvalidURI as e:
-            raise ValloxWebsocketException("Websocket invalid URI") from e
-        except websockets.PayloadTooBig as e:
-            raise ValloxWebsocketException("Websocket payload too big") from e
-        except websockets.InvalidState as e:
-            raise ValloxWebsocketException("Websocket invalid state") from e
-        except websockets.WebSocketProtocolError as e:
-            raise ValloxWebsocketException("Websocket protocol error") from e
-        except websockets.ConnectionClosed as e:
-            raise ValloxWebsocketException("Websocket connection closed") from e
-        except OSError as e:
-            raise ValloxWebsocketException("Websocket connection failed") from e
-        except asyncio.TimeoutError as e:
-            raise ValloxWebsocketException("Websocket connection timed out") from e
+                        raise ex
+        except InvalidHandshake as ex:
+            raise ValloxWebsocketException("Websocket handshake failed") from ex
+        except InvalidURI as ex:
+            raise ValloxWebsocketException("Websocket invalid URI") from ex
+        except PayloadTooBig as ex:
+            raise ValloxWebsocketException("Websocket payload too big") from ex
+        except InvalidState as ex:
+            raise ValloxWebsocketException("Websocket invalid state") from ex
+        except ProtocolError as ex:
+            raise ValloxWebsocketException("Websocket protocol error") from ex
+        except ConnectionClosed as ex:
+            raise ValloxWebsocketException("Websocket connection closed") from ex
+        except OSError as ex:
+            raise ValloxWebsocketException("Websocket connection failed") from ex
+        except asyncio.TimeoutError as ex:
+            raise ValloxWebsocketException("Websocket connection timed out") from ex
 
     return cast(FuncT, wrapped)
 
@@ -267,7 +242,7 @@ class Client:
     async def _websocket_request_multiple(
         self, payload: bytes, read_packets: int
     ) -> List[bytes]:
-        async with websockets.connect(
+        async with websockets.client.connect(
             f"ws://{self.ip_address}/",
             open_timeout=WEBSOCKETS_OPEN_TIMEOUT,
             logger=logger,
@@ -351,8 +326,8 @@ class Client:
                 assert value is not None, "Value cannot be None"
                 address, raw_value = self._encode_pair(key, value)
                 items.append({"address": address, "value": raw_value})
-            except (ValueError, AssertionError) as e:
-                raise ValloxInvalidInputException(f"Unable to encode {key}") from e
+            except (ValueError, AssertionError) as ex:
+                raise ValloxInvalidInputException(f"Unable to encode {key}") from ex
 
         items.sort(key=lambda x: x["address"])
         payload = WriteMessageRequest.build({"fields": {"value": {"items": items}}})

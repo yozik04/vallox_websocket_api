@@ -19,7 +19,7 @@ def vallox():
 
 @pytest.fixture
 def ws():
-    with patch("websockets.connect") as connect:
+    with patch("websockets.client.connect") as connect:
         protocol_mock = AsyncMock(spec=websockets.WebSocketCommonProtocol)
         connect.return_value.__aenter__.side_effect = protocol_mock
 

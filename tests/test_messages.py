@@ -57,7 +57,7 @@ def test_read_table_message_response():
     )
 
     assert 20.0 == to_celsius(
-        data[calculate_offset(vlxDevConstants.__dict__["A_CYC_HOME_AIR_TEMP_TARGET"])]
+        data[calculate_offset(vlxDevConstants.A_CYC_HOME_AIR_TEMP_TARGET)]
     )
 
 
