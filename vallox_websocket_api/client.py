@@ -223,6 +223,8 @@ class Client:
     async def fetch_metrics(
         self, metric_keys: Optional[List[str]] = None
     ) -> MetricDict:
+        await self.load_data_model()
+
         metrics = {}
         payload = self.messages.read_table_request.build({})
         result = await self._websocket_request(payload)
@@ -247,6 +249,8 @@ class Client:
         return metrics
 
     async def fetch_raw_logs(self) -> List[List[Dict[str, Union[int, float]]]]:
+        await self.load_data_model()
+
         payload = self.messages.log_read_request.build({})
         result = await self._websocket_request_multiple(payload, read_packets=2)
         page_count = self.messages.log_read_response1.parse(
@@ -288,6 +292,8 @@ class Client:
         return (await self.fetch_metrics([metric_key])).get(metric_key, None)
 
     async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> bool:
+        await self.load_data_model()
+
         items = []
         for key, value in dict_.items():
             try:
