@@ -14,20 +14,13 @@ from websockets.exceptions import (
     ProtocolError,
 )
 
-from .constants import vlxDevConstants, vlxOffsetObject
+from .data.model import DataModel, DataModelReadException
 from .exceptions import (
     ValloxApiException,
     ValloxInvalidInputException,
     ValloxWebsocketException,
 )
-from .messages import (
-    LogReadRequest,
-    LogReadResponse1,
-    LogReadResponse2,
-    ReadTableRequest,
-    ReadTableResponse,
-    WriteMessageRequest,
-)
+from .messages import Messages
 
 logger = logging.getLogger("vallox").getChild(__name__)
 
@@ -36,80 +29,6 @@ KPageSize = 65536
 WEBSOCKETS_OPEN_TIMEOUT = 1
 WEBSOCKETS_RECV_TIMEOUT = 1
 WEBSOCKET_RETRY_DELAYS = [0.1, 0.2, 0.5, 1]
-
-
-def calculate_offset(aIndex: int) -> int:
-    range_to_offset = {
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_general_info,
-            vlxDevConstants.RANGE_END_g_cyclone_general_info + 1,
-        ): 1,
-        range(
-            vlxDevConstants.RANGE_START_g_typhoon_general_info,
-            vlxDevConstants.RANGE_END_g_typhoon_general_info + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_GENERAL_INFO,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_hw_state,
-            vlxDevConstants.RANGE_END_g_cyclone_hw_state + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_GENERAL_TYP_INFO,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_sw_state,
-            vlxDevConstants.RANGE_END_g_cyclone_sw_state + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_HW_STATES,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_time,
-            vlxDevConstants.RANGE_END_g_cyclone_time + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_SW_STATES,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_output,
-            vlxDevConstants.RANGE_END_g_cyclone_output + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_TIME_ELEMENTS,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_input,
-            vlxDevConstants.RANGE_END_g_cyclone_input + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_OUTPUTS,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_config,
-            vlxDevConstants.RANGE_END_g_cyclone_config + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_INPUTS,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_settings,
-            vlxDevConstants.RANGE_END_g_cyclone_settings + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_CONFIGS,
-        range(
-            vlxDevConstants.RANGE_START_g_typhoon_settings,
-            vlxDevConstants.RANGE_END_g_typhoon_settings + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_CYC_SETTINGS,
-        range(
-            vlxDevConstants.RANGE_START_g_self_test,
-            vlxDevConstants.RANGE_END_g_self_test + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_TYP_SETTINGS,
-        range(
-            vlxDevConstants.RANGE_START_g_faults, vlxDevConstants.RANGE_END_g_faults + 1
-        ): vlxOffsetObject.CYC_NUM_OF_SELF_TESTS,
-        range(
-            vlxDevConstants.RANGE_START_g_cyclone_weekly_schedule,
-            vlxDevConstants.RANGE_END_g_cyclone_weekly_schedule + 1,
-        ): vlxOffsetObject.CYC_NUM_OF_FAULTS,
-    }
-    if (
-        hasattr(vlxDevConstants, "RANGE_START_g_cyclone_extended")
-        and hasattr(vlxDevConstants, "RANGE_END_g_cyclone_extended")
-        and hasattr(vlxOffsetObject, "CYC_NUM_OF_SCHEDULED_EVENTS")
-    ):
-        range_to_offset[
-            range(
-                vlxDevConstants.RANGE_START_g_cyclone_extended,
-                vlxDevConstants.RANGE_END_g_cyclone_extended + 1,
-            )
-        ] = vlxOffsetObject.CYC_NUM_OF_SCHEDULED_EVENTS
-
-    for r, offset in range_to_offset.items():
-        if aIndex in r:
-            return aIndex - r.start + offset - 1
-
-    return 0
-
 
 MetricValue = Union[int, float, None]
 MetricDict = Dict[str, MetricValue]
@@ -185,10 +104,53 @@ class Client:
 
     def __init__(self, ip_address: str):
         self.ip_address = ip_address
+        self.data_model = DataModel()
+        self.messages = Messages(self.data_model)
 
+        self._settable_addresses = {}
+
+    async def load_data_model(self) -> None:
+        if self.data_model.is_valid():
+            return
+
+        # try to load from unit first
+        if await self.load_data_model_from_unit():
+            return
+
+        # if failed try to load from local file
+        if await self.load_local_data_model("2.0.16"):
+            return
+
+        raise DataModelReadException("Failed to load data model")
+
+    async def load_data_model_from_unit(self) -> bool:
+        for path in ["js/bundle.js", "js/vallox.js"]:
+            url = f"http://{self.ip_address}/{path}"
+            logger.info(f"Attempting to load data model from {url}")
+            try:
+                await self.data_model.read_model_from_unit(url)
+                logger.info(f"Loaded data model from {url}")
+                self._on_model_loaded()
+                return True
+            except DataModelReadException as ex:
+                logger.warning(f"Failed to load data model from {url}: {ex}")
+                return False
+
+        return False
+
+    async def load_local_data_model(self, version: str) -> bool:
+        try:
+            await self.data_model.read_bundled(version)
+            self._on_model_loaded()
+            return True
+        except DataModelReadException as ex:
+            logger.warning(f"Failed to load local data model {version}: {ex}")
+            return False
+
+    def _on_model_loaded(self) -> None:
         self._settable_addresses = {
             v: int
-            for k, v in vlxDevConstants.__dict__.items()
+            for k, v in self.data_model.addresses.items()
             if any(r.match(k) for r in self.SETTABLE_INT_VALS)
         }
 
@@ -202,11 +164,10 @@ class Client:
         if type(address) == int:
             self._settable_addresses[address] = var_type
             return
-        elif type(address) == str:
-            if hasattr(vlxDevConstants, address):
-                key = int(getattr(vlxDevConstants, address, address))
-                self._settable_addresses[key] = var_type
-                return
+        elif type(address) == str and address in self.data_model.addresses:
+            key = int(self.data_model.addresses[address])
+            self._settable_addresses[key] = var_type
+            return
 
         raise ValloxInvalidInputException(
             f"Unable to add address '{address}' to settable list"
@@ -215,7 +176,10 @@ class Client:
     def _encode_pair(
         self, key: str, value: Union[int, float, str]
     ) -> Tuple[int, Union[int, float]]:
-        address = int(getattr(vlxDevConstants, key, key))
+        if key not in self.data_model.addresses:
+            raise ValloxInvalidInputException(f"Unknown address {key}")
+
+        address = int(self.data_model.addresses[key])
         addresses = self.get_settable_addresses()
         assert address in addresses, f"{key} setting is not settable"
 
@@ -260,16 +224,18 @@ class Client:
         self, metric_keys: Optional[List[str]] = None
     ) -> MetricDict:
         metrics = {}
-        payload = ReadTableRequest.build({})
+        payload = self.messages.read_table_request.build({})
         result = await self._websocket_request(payload)
 
-        data = ReadTableResponse.parse(result)
+        data = self.messages.read_table_response.parse(result)
 
         if metric_keys is None:
-            metric_keys = vlxDevConstants.__dict__.keys()
+            metric_keys = list(self.data_model.addresses.keys())
 
         for key in metric_keys:
-            value = data[calculate_offset(vlxDevConstants.__dict__[key])]
+            value = data[
+                self.data_model.calculate_offset(self.data_model.addresses[key])
+            ]
 
             if "_TEMP_" in key:
                 value = to_celsius(value)
@@ -281,9 +247,11 @@ class Client:
         return metrics
 
     async def fetch_raw_logs(self) -> List[List[Dict[str, Union[int, float]]]]:
-        payload = LogReadRequest.build({})
+        payload = self.messages.log_read_request.build({})
         result = await self._websocket_request_multiple(payload, read_packets=2)
-        page_count = LogReadResponse1.parse(result[0]).fields.value.pages
+        page_count = self.messages.log_read_response1.parse(
+            result[0]
+        ).fields.value.pages
 
         expected_total_len = KPageSize * page_count
         result1_len = len(result[1])
@@ -298,7 +266,7 @@ class Client:
         series = []
         for page in pages:
             points = []
-            data = LogReadResponse2.parse(page)
+            data = self.messages.log_read_response2.parse(page)
             for cell in data:
                 name = str(cell.id)
                 point = {
@@ -330,7 +298,9 @@ class Client:
                 raise ValloxInvalidInputException(f"Unable to encode {key}") from ex
 
         items.sort(key=lambda x: x["address"])
-        payload = WriteMessageRequest.build({"fields": {"value": {"items": items}}})
+        payload = self.messages.write_request.build(
+            {"fields": {"value": {"items": items}}}
+        )
         await self._websocket_request(payload)
 
         return True
