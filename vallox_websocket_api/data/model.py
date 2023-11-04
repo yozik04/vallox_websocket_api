@@ -88,6 +88,10 @@ class DataModel:
                         logger.warning(f"Failed to resolve {value}")
                         continue
 
+            if key in constants[parent_key]:
+                logger.info(f"Duplicate key {key} in {parent_key}. Skipping...")
+                continue
+
             constants[parent_key][key] = value
 
         self._precalculate_offsets(constants)
