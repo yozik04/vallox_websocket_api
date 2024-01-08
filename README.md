@@ -93,7 +93,7 @@ async def run():
     await client.set_profile(PROFILE.EXTRA, 120) # EXTRA mode for 120 min
     await client.set_profile(PROFILE.EXTRA, 65535) # EXTRA mode, never TIMEOUT
 
-asyncio.get_event_loop().run_until_complete(run())
+asyncio.run(run())
 ```
 
 ## Metrics
@@ -113,7 +113,7 @@ async def run():
     from pprint import pprint
     pprint(metrics)
 
-asyncio.get_event_loop().run_until_complete(run())
+asyncio.run(run())
 ```
 
 Or if you want just a subset of metrics:
@@ -134,7 +134,7 @@ async def run():
 
     from pprint import pprint
     pprint(metrics)
-asyncio.get_event_loop().run_until_complete(run())
+asyncio.run(run())
 ```
 
 ## Reading historical data
@@ -151,7 +151,7 @@ async def run():
 
     from pprint import pprint
     pprint(data)
-asyncio.get_event_loop().run_until_complete(run())
+asyncio.run(run())
 ```
 
 ## Setting values
@@ -200,7 +200,7 @@ async def run():
       'A_CYC_FIREPLACE_TIMER': 15, #Minutes
     })
 
-asyncio.get_event_loop().run_until_complete(run())
+asyncio.run(run())
 ```
 
 Not all addresses are settable.
