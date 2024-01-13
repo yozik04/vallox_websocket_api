@@ -6,7 +6,7 @@ import json
 import logging
 from pathlib import Path
 import re
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import aiohttp
 
@@ -18,32 +18,42 @@ class DataModelReadException(Exception):
 
 
 class DataModel:
+    """Data model for Vallox websocket API."""
+
     # VlxDevConstants.A_CYC_SCHEDULE_MONDAY_22=40983
     # vlxOffsetObject.CYC_NUM_OF_HW_STATES=VlxReadConstants.CYC_NUM_OF_HW_STATES
     re_parse_constants = re.compile(
         r"(Vlx\w+).(\w+)\s*=\s*([\w.]+)\s*[,;]", re.IGNORECASE
     )
     re_parse_number = re.compile(r"(\d+e?\d*)")
-    constants: Optional[dict] = None
+    constants: Optional[Dict[str, Any]] = None
 
     @cached_property
     def addresses(self) -> dict:
+        assert self.constants, "No constants loaded"
         return {
             key: value
             for key, value in self.constants["VlxDevConstants"].items()
-            if key.startswith("A_")
+            if key.startswith("A_") or key.startswith("EXT_")
         }
 
     @cached_property
     def websocket_constants(self) -> dict:
+        assert self.constants, "No constants loaded"
         return {
             key: value
             for key, value in self.constants["VlxDevConstants"].items()
             if key.startswith("WS_")
         }
 
+    @property
     def is_valid(self) -> bool:
-        return self.constants is not None
+        try:
+            self.calculate_offset(0)
+        except (KeyError, AssertionError):
+            return False
+
+        return True
 
     async def read_model_from_unit(self, url) -> None:
         try:
@@ -52,6 +62,8 @@ class DataModel:
                     data = await response.text()
 
                     self.constants = self._parse_js_file(data)
+
+                    assert self.is_valid, "Invalid model"
         except Exception as ex:
             raise DataModelReadException(f"Failed to read model from {url}") from ex
 
@@ -61,11 +73,13 @@ class DataModel:
                 None, js_file.read_text
             )
             self.constants = self._parse_js_file(data)
+
+            assert self.is_valid, "Invalid model"
         except Exception as ex:
             raise DataModelReadException(f"Failed to read model from {js_file}") from ex
 
     def _parse_js_file(self, data: str) -> dict:
-        constants = defaultdict(dict)
+        constants: Dict[str, Dict[str, int]] = defaultdict(dict)
 
         for match in self.re_parse_constants.finditer(data):
             parent_key = match.group(1)
@@ -75,6 +89,7 @@ class DataModel:
                 "vlxOffsetObject",
             ):
                 continue
+
             key = match.group(2)
             value = match.group(3)
             if self.re_parse_number.match(value):
@@ -87,6 +102,9 @@ class DataModel:
                     except KeyError:
                         logger.warning(f"Failed to resolve {value}")
                         continue
+                else:
+                    logger.warning(f"Failed to resolve {value}")
+                    continue
 
             if key in constants[parent_key]:
                 logger.info(f"Duplicate key {key} in {parent_key}. Skipping...")
@@ -101,13 +119,15 @@ class DataModel:
     async def read_bundled(self, version: str) -> None:
         try:
             json_file = files("vallox_websocket_api.data").joinpath(f"{version}.json")
-            if not json_file.exists():
+            if not json_file.is_file():
                 raise DataModelReadException(f"Failed to read local model {version}")
 
             data = await asyncio.get_running_loop().run_in_executor(
                 None, json_file.read_text
             )
             self.constants = json.loads(data)
+
+            assert self.is_valid, "Invalid model"
         except Exception as ex:
             raise DataModelReadException(
                 f"Failed to read local model {version}"
@@ -121,6 +141,8 @@ class DataModel:
             constants["vlxOffsetObject"][key] = sum_ + 1
 
     def calculate_offset(self, aIndex: int) -> int:
+        assert self.constants, "No constants loaded"
+
         VlxDevConstants = self.constants["VlxDevConstants"]
         vlxOffsetObject = self.constants["vlxOffsetObject"]
         range_to_offset = {

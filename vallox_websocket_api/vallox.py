@@ -81,10 +81,10 @@ UUID_METRICS = [f"A_CYC_UUID{i}" for i in range(0, 8)]
 MODEL_METRIC = "A_CYC_MACHINE_MODEL"
 
 
-def get_model(data: MetricDict) -> Optional[str]:
+def get_model(data: MetricDict) -> str:
     model_index = data[MODEL_METRIC]
     if isinstance(model_index, int) and model_index < len(DEVICE_MODEL):
-        return DEVICE_MODEL[model_index]
+        return DEVICE_MODEL[model_index] or "Unknown"
 
     return "Unknown"
 

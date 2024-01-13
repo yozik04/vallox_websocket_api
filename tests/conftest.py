@@ -10,7 +10,7 @@ from vallox_websocket_api.vallox import Vallox
 @pytest.fixture
 async def client():
     client = Client("127.0.0.1")
-    await client.load_local_data_model("2.0.16")
+    await client.load_bundled_data_model("2.0.16")
 
     return client
 
@@ -18,7 +18,7 @@ async def client():
 @pytest.fixture
 async def vallox():
     vallox = Vallox("127.0.0.1")
-    await vallox.load_local_data_model("2.0.16")
+    await vallox.load_bundled_data_model("2.0.16")
 
     return vallox
 
