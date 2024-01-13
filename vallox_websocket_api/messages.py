@@ -22,6 +22,8 @@ from vallox_websocket_api.data.model import DataModel
 
 
 class Messages:
+    """Constructs for Vallox websocket messages."""
+
     def __init__(self, data_model: DataModel) -> None:
         self.data_model = data_model
 
