@@ -81,6 +81,15 @@ class DataModel:
     def _parse_js_file(self, data: str) -> dict:
         constants: Dict[str, Dict[str, int]] = defaultdict(dict)
 
+        def parse_number(value: str) -> int:
+            value = value.strip()
+            if value.startswith("0x"):
+                # Convert hexadecimal to integer
+                return int(value, 16)
+            else:
+                # Convert string to float and then to integer
+                return int(float(value))
+
         for match in self.re_parse_constants.finditer(data):
             parent_key = match.group(1)
             if parent_key not in (
@@ -93,7 +102,7 @@ class DataModel:
             key = match.group(2)
             value = match.group(3)
             if self.re_parse_number.match(value):
-                value = int(float(value))
+                value = parse_number(value)
             else:
                 path = value.split(".")
                 if len(path) == 2:
