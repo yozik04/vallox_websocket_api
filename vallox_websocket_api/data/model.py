@@ -34,7 +34,7 @@ class DataModel:
         return {
             key: value
             for key, value in self.constants["VlxDevConstants"].items()
-            if key.startswith("A_") or key.startswith("EXT_")
+            if key.startswith("A_")
         }
 
     @cached_property
