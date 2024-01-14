@@ -22,8 +22,12 @@ jobs:
     needs: test
     steps:
     - uses: actions/checkout@v4
+    - name: Check versions match
+      run: |
+        PUBLISHING_VERSION=${{ github.event.release.tag_name }}
+        grep -qE '__version__ = "'$PUBLISHING_VERSION'"' vallox_websocket_api/__init__.py
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - name: Install dependencies
@@ -32,7 +36,7 @@ jobs:
     - name: Build package
       run: python -m build
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e
+      uses: pypa/gh-action-pypi-publish@release/v1.5
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
