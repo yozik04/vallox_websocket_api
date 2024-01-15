@@ -90,6 +90,8 @@ def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
 
 
 class Client:
+    """Client for Vallox Websocket API"""
+
     SETTABLE_INT_VALS = {
         re.compile("^A_CYC_MODE$"),
         re.compile("^A_CYC_STATE$"),
@@ -110,7 +112,7 @@ class Client:
         self._settable_addresses = {}
 
     async def load_data_model(self) -> None:
-        if self.data_model.is_valid():
+        if self.data_model.is_valid:
             return
 
         # try to load from unit first
@@ -118,7 +120,7 @@ class Client:
             return
 
         # if failed try to load from local file
-        if await self.load_local_data_model("2.0.16"):
+        if await self.load_bundled_data_model("2.0.16"):
             return
 
         raise DataModelReadException("Failed to load data model")
@@ -138,7 +140,7 @@ class Client:
 
         return False
 
-    async def load_local_data_model(self, version: str) -> bool:
+    async def load_bundled_data_model(self, version: str) -> bool:
         try:
             await self.data_model.read_bundled(version)
             self._on_model_loaded()
