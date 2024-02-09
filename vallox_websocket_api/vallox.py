@@ -1,5 +1,7 @@
+from dataclasses import dataclass
+import datetime
 from datetime import date, timedelta
-from enum import IntEnum
+from enum import Enum, IntEnum
 import logging
 from typing import Dict, Optional, Union
 from uuid import UUID
@@ -7,6 +9,7 @@ from uuid import UUID
 from vallox_websocket_api.exceptions import ValloxInvalidInputException
 
 from .client import Client, MetricDict
+from .data.constants import ALARM_MESSAGES
 
 logger = logging.getLogger("vallox").getChild(__name__)
 
@@ -124,6 +127,54 @@ def get_next_filter_change_date(data: MetricDict) -> Optional[date]:
 
 def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
+
+
+def _get_alarm_date(raw: int) -> Optional[date]:
+    if raw is None:
+        return None
+
+    return datetime.date(1990, 4, 8) + datetime.timedelta(days=raw)
+
+
+@dataclass
+class Alarm:
+    """Alarm dataclass"""
+
+    code: int
+    severity: "Severity"
+    first_date: datetime.date
+    last_date: datetime.date
+    count: int
+    activity: "Activity"
+
+    class Severity(Enum):
+        """Alarm severity"""
+
+        UNKNOWN = -1
+        MILD = 0
+        SEVERE = 1
+
+    class Activity(Enum):
+        """Alarm status"""
+
+        UNKNOWN = -1
+        PASSIVE = 0
+        ACTIVE = 1
+        SOLVED = 2
+
+    @property
+    def message(self) -> str:
+        try:
+            return ALARM_MESSAGES[self.code]["text"]
+        except IndexError:
+            return "Unknown"
+
+    def __repr__(self):
+        return (
+            f"Alarm(code={self.code}, severity={self.severity}, first_date={self.first_date}, "
+            f"last_date={self.last_date}, count={self.count}, activity={self.activity}, "
+            f"message='{self.message}')"
+        )
 
 
 class Vallox(Client):
@@ -307,3 +358,47 @@ class Vallox(Client):
         )
 
         return get_next_filter_change_date(metrics)
+
+    def get_alarms_from_metrics(
+        self, metrics: MetricDict, skip_solved=True
+    ) -> list[Alarm]:
+        fault_count = metrics.get("A_CYC_TOTAL_FAULT_COUNT")
+        if fault_count is None:
+            return []
+
+        alarms = []
+        for i in range(1, fault_count + 1):
+            suffix = "" if i == 1 else f"_{i}"
+            code = metrics.get(f"A_CYC_FAULT_CODE{suffix}")
+            if code is None:
+                break
+
+            if code == 0:
+                continue
+
+            activity = metrics.get(f"A_CYC_FAULT_ACTIVITY{suffix}")
+            if activity is None:
+                activity = Alarm.Severity.UNKNOWN
+
+            if skip_solved and activity == 2:
+                continue
+
+            first_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_FIRST_DATE{suffix}"))
+            last_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_LAST_DATE{suffix}"))
+
+            severity = metrics.get(f"A_CYC_FAULT_SEVERITY{suffix}")
+            if severity is None:
+                severity = Alarm.Severity.UNKNOWN
+
+            alarms.append(
+                Alarm(
+                    code=code,
+                    severity=Alarm.Severity(severity),
+                    first_date=first_date,
+                    last_date=last_date,
+                    count=metrics.get(f"A_CYC_FAULT_COUNT{suffix}", None),
+                    activity=Alarm.Activity(activity),
+                )
+            )
+
+        return alarms
