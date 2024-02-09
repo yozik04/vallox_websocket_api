@@ -129,6 +129,13 @@ def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
 
+def _get_alarm_date(raw):
+    if raw is None:
+        return None
+
+    return datetime.date(1990, 4, 8) + datetime.timedelta(days=raw)
+
+
 @dataclass
 class Alarm:
     """Alarm dataclass"""
@@ -138,17 +145,19 @@ class Alarm:
     first_date: datetime.date
     last_date: datetime.date
     count: int
-    activity: "Status"
+    activity: "Activity"
 
     class Severity(Enum):
         """Alarm severity"""
 
+        UNKNOWN = -1
         MILD = 0
         SEVERE = 1
 
-    class Status(Enum):
+    class Activity(Enum):
         """Alarm status"""
 
+        UNKNOWN = -1
         PASSIVE = 0
         ACTIVE = 1
         SOLVED = 2
@@ -353,11 +362,11 @@ class Vallox(Client):
     def get_alarms_from_metrics(
         self, metrics: MetricDict, skip_solved=True
     ) -> list[Alarm]:
-        alarms = []
         fault_count = metrics.get("A_CYC_TOTAL_FAULT_COUNT")
         if fault_count is None:
-            return alarms
+            return []
 
+        alarms = []
         for i in range(1, fault_count + 1):
             suffix = "" if i == 1 else f"_{i}"
             code = metrics.get(f"A_CYC_FAULT_CODE{suffix}")
@@ -369,23 +378,17 @@ class Vallox(Client):
 
             activity = metrics.get(f"A_CYC_FAULT_ACTIVITY{suffix}")
             if activity is None:
-                activity = 0
+                activity = Alarm.Severity.UNKNOWN
 
             if skip_solved and activity == 2:
                 continue
 
-            start = datetime.date(1990, 4, 8)
-            first_date = metrics.get(f"A_CYC_FAULT_FIRST_DATE{suffix}")
-            if first_date is not None:
-                first_date = start + datetime.timedelta(days=first_date)
-
-            last_date = metrics.get(f"A_CYC_FAULT_LAST_DATE{suffix}")
-            if last_date is not None:
-                last_date = start + datetime.timedelta(days=last_date)
+            first_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_FIRST_DATE{suffix}"))
+            last_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_LAST_DATE{suffix}"))
 
             severity = metrics.get(f"A_CYC_FAULT_SEVERITY{suffix}")
             if severity is None:
-                severity = 0
+                severity = Alarm.Severity.UNKNOWN
 
             alarms.append(
                 Alarm(
@@ -394,7 +397,7 @@ class Vallox(Client):
                     first_date=first_date,
                     last_date=last_date,
                     count=metrics.get(f"A_CYC_FAULT_COUNT{suffix}", None),
-                    activity=Alarm.Status(activity),
+                    activity=Alarm.Activity(activity),
                 )
             )
 

@@ -223,7 +223,7 @@ async def test_get_info(vallox: Vallox, metrics: dict):
     alarm = alarms[0]
     assert alarm.code == 23
     assert alarm.severity == Alarm.Severity.SEVERE
-    assert alarm.activity == Alarm.Status.SOLVED
+    assert alarm.activity == Alarm.Activity.SOLVED
     assert alarm.count == 0
     assert alarm.first_date == datetime.date(2024, 1, 2)
     assert alarm.last_date == datetime.date(2024, 1, 7)
