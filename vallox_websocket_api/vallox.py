@@ -129,7 +129,7 @@ def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
 
-def _get_alarm_date(raw):
+def _get_alarm_date(raw: int) -> Optional[date]:
     if raw is None:
         return None
 
