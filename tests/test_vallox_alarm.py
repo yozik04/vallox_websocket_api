@@ -2,12 +2,7 @@ import datetime
 
 import pytest
 
-from vallox_websocket_api.vallox import Alarm, Vallox
-
-
-@pytest.fixture
-def vallox():
-    return Vallox("127.0.0.1")
+from vallox_websocket_api.vallox import Alarm, MetricData
 
 
 @pytest.fixture
@@ -215,8 +210,9 @@ def metrics():
     }
 
 
-async def test_get_info(vallox: Vallox, metrics: dict):
-    alarms = vallox.get_alarms_from_metrics(metrics, skip_solved=False)
+async def test_get_info(metrics: dict):
+    data = MetricData(metrics)
+    alarms = data.get_alarms(skip_solved=False)
 
     assert len(alarms) == 1
 

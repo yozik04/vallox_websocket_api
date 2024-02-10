@@ -51,4 +51,4 @@ async def test_get_fan_speed_for_profile_home(vallox: Vallox):
     vallox.fetch_metrics.return_value = {"A_CYC_HOME_SPEED_SETTING": 19}
 
     assert await vallox.get_fan_speed(PROFILE.HOME) == 19
-    vallox.fetch_metrics.assert_called_once_with(["A_CYC_HOME_SPEED_SETTING"])
+    vallox.fetch_metrics.assert_called_once_with()

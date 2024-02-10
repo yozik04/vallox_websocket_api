@@ -136,6 +136,116 @@ def _get_alarm_date(raw: int) -> Optional[date]:
     return datetime.date(1990, 4, 8) + datetime.timedelta(days=raw)
 
 
+class MetricData:
+    """Metric dataclass"""
+
+    def __init__(self, data: MetricDict):
+        self.data = data
+
+    def __getattr__(self, name: str):
+        return self.data.get(name)
+
+    def __getitem__(self, name: str):
+        return self.data.get(name)
+
+    @property
+    def model(self) -> str:
+        return get_model(self.data)
+
+    @property
+    def sw_version(self) -> str:
+        return get_sw_version(self.data)
+
+    @property
+    def uuid(self) -> UUID:
+        return get_uuid(self.data)
+
+    @property
+    def profile(self) -> PROFILE:
+        if (
+            self.data["A_CYC_BOOST_TIMER"] is not None
+            and self.data["A_CYC_BOOST_TIMER"] > 0
+        ):
+            return PROFILE.BOOST
+        if (
+            self.data["A_CYC_FIREPLACE_TIMER"] is not None
+            and self.data["A_CYC_FIREPLACE_TIMER"] > 0
+        ):
+            return PROFILE.FIREPLACE
+        if (
+            self.data["A_CYC_EXTRA_TIMER"] is not None
+            and self.data["A_CYC_EXTRA_TIMER"] > 0
+        ):
+            return PROFILE.EXTRA
+        if self.data["A_CYC_STATE"] == 1:
+            return PROFILE.AWAY
+        elif self.data["A_CYC_STATE"] == 0:
+            return PROFILE.HOME
+        return PROFILE.NONE
+
+    @property
+    def next_filter_change_date(self) -> Optional[date]:
+        return get_next_filter_change_date(self.data)
+
+    def get_temperature_setting(self, profile: PROFILE) -> Optional[float]:
+        if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Temperature is not gettable for profile: {profile}"
+            )
+        return self.data.get(PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile])
+
+    def get_fan_speed(self, profile: PROFILE) -> Optional[int]:
+        if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Fan speed is not gettable for profile: {profile}"
+            )
+        return self.data.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
+
+    def get_alarms(self, skip_solved=True) -> list["Alarm"]:
+        fault_count = self.data.get("A_CYC_TOTAL_FAULT_COUNT")
+        if fault_count is None:
+            return []
+
+        alarms = []
+        for i in range(1, fault_count + 1):
+            suffix = "" if i == 1 else f"_{i}"
+            code = self.data.get(f"A_CYC_FAULT_CODE{suffix}")
+            if code is None:
+                break
+
+            if code == 0:
+                continue
+
+            activity = self.data.get(f"A_CYC_FAULT_ACTIVITY{suffix}")
+            if activity is None:
+                activity = Alarm.Severity.UNKNOWN
+
+            if skip_solved and activity == 2:
+                continue
+
+            first_date = _get_alarm_date(
+                self.data.get(f"A_CYC_FAULT_FIRST_DATE{suffix}")
+            )
+            last_date = _get_alarm_date(self.data.get(f"A_CYC_FAULT_LAST_DATE{suffix}"))
+
+            severity = self.data.get(f"A_CYC_FAULT_SEVERITY{suffix}")
+            if severity is None:
+                severity = Alarm.Severity.UNKNOWN
+
+            alarms.append(
+                Alarm(
+                    code=code,
+                    severity=Alarm.Severity(severity),
+                    first_date=first_date,
+                    last_date=last_date,
+                    count=self.data.get(f"A_CYC_FAULT_COUNT{suffix}", None),
+                    activity=Alarm.Activity(activity),
+                )
+            )
+
+        return alarms
+
+
 @dataclass
 class Alarm:
     """Alarm dataclass"""
@@ -178,40 +288,16 @@ class Alarm:
 
 
 class Vallox(Client):
+    async def fetch_metric_data(self) -> MetricData:
+        return MetricData(await self.fetch_metrics())
+
     async def get_profile(self) -> PROFILE:
         """Returns the profile of the fan
 
         :returns: One of PROFILE.* values or PROFILE.NONE if unknown
         """
-        metrics = await self.fetch_metrics(
-            [
-                "A_CYC_STATE",
-                "A_CYC_BOOST_TIMER",
-                "A_CYC_FIREPLACE_TIMER",
-                "A_CYC_EXTRA_TIMER",
-            ]
-        )
-
-        if (
-            metrics["A_CYC_BOOST_TIMER"] is not None
-            and metrics["A_CYC_BOOST_TIMER"] > 0
-        ):
-            return PROFILE.BOOST
-        if (
-            metrics["A_CYC_FIREPLACE_TIMER"] is not None
-            and metrics["A_CYC_FIREPLACE_TIMER"] > 0
-        ):
-            return PROFILE.FIREPLACE
-        if (
-            metrics["A_CYC_EXTRA_TIMER"] is not None
-            and metrics["A_CYC_EXTRA_TIMER"] > 0
-        ):
-            return PROFILE.EXTRA
-        if metrics["A_CYC_STATE"] == 1:
-            return PROFILE.AWAY
-        elif metrics["A_CYC_STATE"] == 0:
-            return PROFILE.HOME
-        return PROFILE.NONE
+        metrics = await self.fetch_metric_data()
+        return metrics.profile
 
     async def set_profile(
         self, profile: PROFILE, duration: Optional[int] = None
@@ -290,27 +376,16 @@ class Vallox(Client):
             )
 
     async def get_info(self) -> Dict[str, Union[str, UUID]]:
-        data = await self.fetch_metrics(
-            SW_VERSION_METRICS + [MODEL_METRIC] + UUID_METRICS
-        )
+        data = await self.fetch_metric_data()
         return {
-            "model": get_model(data),
-            "sw_version": get_sw_version(data),
-            "uuid": get_uuid(data),
+            "model": data.model,
+            "sw_version": data.sw_version,
+            "uuid": data.uuid,
         }
 
     async def get_temperature(self, profile: PROFILE) -> Optional[float]:
-        if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"Temperature is not gettable for profile: {profile}"
-            )
-        setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
-
-        value = await self.fetch_metric(setting)
-        if value is None:
-            return None
-
-        return float(value)
+        data = await self.fetch_metric_data()
+        return data.get_temperature_setting(profile)
 
     async def set_temperature(self, profile: PROFILE, temperature: float) -> None:
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
@@ -322,15 +397,8 @@ class Vallox(Client):
         await self.set_values({setting: temperature})
 
     async def get_fan_speed(self, profile: PROFILE) -> Optional[int]:
-        if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"Fan speed is not gettable for profile: {profile}"
-            )
-
-        value = await self.fetch_metric(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
-        if value is None:
-            return None
-        return int(value)
+        data = await self.fetch_metric_data()
+        return data.get_fan_speed(profile)
 
     async def set_fan_speed(self, profile: PROFILE, percent: int) -> None:
         if percent < 0 or percent > 100:
@@ -348,57 +416,5 @@ class Vallox(Client):
 
         :returns: next filter change date, or None if no date is available
         """
-        metrics = await self.fetch_metrics(
-            [
-                "A_CYC_FILTER_CHANGED_YEAR",
-                "A_CYC_FILTER_CHANGED_MONTH",
-                "A_CYC_FILTER_CHANGED_DAY",
-                "A_CYC_FILTER_CHANGE_INTERVAL",
-            ]
-        )
-
-        return get_next_filter_change_date(metrics)
-
-    def get_alarms_from_metrics(
-        self, metrics: MetricDict, skip_solved=True
-    ) -> list[Alarm]:
-        fault_count = metrics.get("A_CYC_TOTAL_FAULT_COUNT")
-        if fault_count is None:
-            return []
-
-        alarms = []
-        for i in range(1, fault_count + 1):
-            suffix = "" if i == 1 else f"_{i}"
-            code = metrics.get(f"A_CYC_FAULT_CODE{suffix}")
-            if code is None:
-                break
-
-            if code == 0:
-                continue
-
-            activity = metrics.get(f"A_CYC_FAULT_ACTIVITY{suffix}")
-            if activity is None:
-                activity = Alarm.Severity.UNKNOWN
-
-            if skip_solved and activity == 2:
-                continue
-
-            first_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_FIRST_DATE{suffix}"))
-            last_date = _get_alarm_date(metrics.get(f"A_CYC_FAULT_LAST_DATE{suffix}"))
-
-            severity = metrics.get(f"A_CYC_FAULT_SEVERITY{suffix}")
-            if severity is None:
-                severity = Alarm.Severity.UNKNOWN
-
-            alarms.append(
-                Alarm(
-                    code=code,
-                    severity=Alarm.Severity(severity),
-                    first_date=first_date,
-                    last_date=last_date,
-                    count=metrics.get(f"A_CYC_FAULT_COUNT{suffix}", None),
-                    activity=Alarm.Activity(activity),
-                )
-            )
-
-        return alarms
+        data = await self.fetch_metric_data()
+        return data.next_filter_change_date
