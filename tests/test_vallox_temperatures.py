@@ -33,7 +33,7 @@ async def test_vallox_get_temperature(vallox):
     )
 
     assert await vallox.get_temperature(PROFILE.HOME) == 19
-    vallox.fetch_metrics.assert_called_once_with()
+    vallox.fetch_metrics.assert_called_once()
 
 
 async def test_vallox_fetch_metric(vallox, ws):

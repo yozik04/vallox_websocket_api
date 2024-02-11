@@ -199,4 +199,4 @@ async def test_get_profile_extra(vallox: Vallox):
 
 
 def _assert_profile_metrics_fetched(vallox):
-    vallox.fetch_metrics.assert_called_once_with()
+    vallox.fetch_metrics.assert_called_once()

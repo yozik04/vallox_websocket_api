@@ -72,4 +72,4 @@ async def test_nextFilterChangeYesterday(vallox: Vallox):
 
 
 def assert_filter_metrics_called(vallox):
-    vallox.fetch_metrics.assert_called_once_with()
+    vallox.fetch_metrics.assert_called_once()
