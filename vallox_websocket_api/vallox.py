@@ -359,6 +359,18 @@ class Vallox(Client):
 
         return get_next_filter_change_date(metrics)
 
+    async def set_filter_change_date(self, _date: date) -> None:
+        """Set the next filter change date to today"""
+        assert isinstance(_date, date)
+
+        await self.set_values(
+            {
+                "A_CYC_FILTER_CHANGED_DAY": _date.day,
+                "A_CYC_FILTER_CHANGED_MONTH": _date.month,
+                "A_CYC_FILTER_CHANGED_YEAR": _date.year - 2000,
+            }
+        )
+
     def get_alarms_from_metrics(
         self, metrics: MetricDict, skip_solved=True
     ) -> list[Alarm]:
