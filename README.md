@@ -83,7 +83,8 @@ from vallox_websocket_api import Vallox, PROFILE
 client = Vallox('192.168.1.10') # Vallox unit IP
 
 async def run():
-    await client.get_profile() # RETURNS a PROFILE.* value
+    data = await client.fetch_metric_data()
+    profile = data.profile # RETURNS a PROFILE.* value
     await client.set_profile(PROFILE.HOME) # Permanently HOME profile
     await client.set_profile(PROFILE.AWAY) # Permanently AWAY profile
     await client.set_profile(PROFILE.FIREPLACE) # FIREPLACE mode for configured timeout
@@ -103,15 +104,14 @@ Reading metrics and setting values
 ## Reading Metrics
 ```python
 import asyncio
-from vallox_websocket_api import Client
+from vallox_websocket_api import Vallox
+from pprint import pprint
 
-client = Client('192.168.1.2')
+client = Vallox('192.168.1.2')
 
 async def run():
-    metrics = await client.fetch_metrics()
-
-    from pprint import pprint
-    pprint(metrics)
+    data = await client.fetch_metric_data()
+    pprint(data)
 
 asyncio.run(run())
 ```
@@ -120,9 +120,9 @@ Or if you want just a subset of metrics:
 
 ```python
 import asyncio
-from vallox_websocket_api import Client
+from vallox_websocket_api import Vallox
 
-client = Client('192.168.1.2')
+client = Vallox('192.168.1.2')
 async def run():
     metrics = await client.fetch_metrics([
       'A_CYC_TEMP_EXHAUST_AIR',
@@ -143,9 +143,9 @@ Device stores some historical data in its memory. Code to retrieve it:
 
 ```python
 import asyncio
-from vallox_websocket_api import Client
+from vallox_websocket_api import Vallox
 
-client = Client('192.168.1.2')
+client = Vallox('192.168.1.2')
 async def run():
     data = await client.fetch_raw_logs()
 
@@ -159,9 +159,9 @@ asyncio.run(run())
 Textual values will be converted to integers before sending to the unit.
 ```python
 import asyncio
-from vallox_websocket_api import Client
+from vallox_websocket_api import Vallox
 
-client = Client('192.168.9.106')
+client = Vallox('192.168.9.106')
 
 async def run():
     # Setting Home profile fan speed
