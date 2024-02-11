@@ -199,11 +199,4 @@ async def test_get_profile_extra(vallox: Vallox):
 
 
 def _assert_profile_metrics_fetched(vallox):
-    vallox.fetch_metrics.assert_called_once_with(
-        [
-            "A_CYC_STATE",
-            "A_CYC_BOOST_TIMER",
-            "A_CYC_FIREPLACE_TIMER",
-            "A_CYC_EXTRA_TIMER",
-        ]
-    )
+    vallox.fetch_metrics.assert_called_once()

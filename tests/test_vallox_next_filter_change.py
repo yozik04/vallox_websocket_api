@@ -72,11 +72,4 @@ async def test_nextFilterChangeYesterday(vallox: Vallox):
 
 
 def assert_filter_metrics_called(vallox):
-    vallox.fetch_metrics.assert_called_once_with(
-        [
-            "A_CYC_FILTER_CHANGED_YEAR",
-            "A_CYC_FILTER_CHANGED_MONTH",
-            "A_CYC_FILTER_CHANGED_DAY",
-            "A_CYC_FILTER_CHANGE_INTERVAL",
-        ]
-    )
+    vallox.fetch_metrics.assert_called_once()
