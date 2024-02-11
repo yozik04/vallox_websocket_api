@@ -151,6 +151,9 @@ class MetricData:
     def __repr__(self):
         return f'MetricData(model="{self.model}",uuid="{self.uuid}",sw_version="{self.sw_version}",...,data={self.data})'
 
+    def items(self):
+        return self.data.items()
+
     @property
     def model(self) -> str:
         return get_model(self.data)
