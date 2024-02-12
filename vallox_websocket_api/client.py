@@ -100,6 +100,9 @@ class Client:
         re.compile("^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$"),
         re.compile("^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$"),
         re.compile("^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
+        re.compile(
+            "^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
+        ),
     }
 
     _settable_addresses: Dict[int, type]
@@ -163,10 +166,10 @@ class Client:
         if var_type not in [int, float]:
             raise ValloxInvalidInputException("Only float or int types are supported")
 
-        if type(address) == int:
+        if isinstance(address, int):
             self._settable_addresses[address] = var_type
             return
-        elif type(address) == str and address in self.data_model.addresses:
+        elif isinstance(address, str) and address in self.data_model.addresses:
             key = int(self.data_model.addresses[address])
             self._settable_addresses[key] = var_type
             return
@@ -195,8 +198,8 @@ class Client:
 
         required_type = addresses[address]
 
-        assert (
-            type(raw_value) == required_type
+        assert isinstance(
+            raw_value, required_type
         ), f"{key}({address}) key needs to be an {required_type.__name__}, but {type(raw_value).__name__} passed"
 
         return address, raw_value
