@@ -93,16 +93,17 @@ class Client:
     """Client for Vallox Websocket API"""
 
     SETTABLE_INT_VALS = {
-        re.compile("^A_CYC_MODE$"),
-        re.compile("^A_CYC_STATE$"),
-        re.compile("^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$"),
-        re.compile("^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$"),
-        re.compile("^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$"),
-        re.compile("^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$"),
-        re.compile("^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
+        re.compile(r"^A_CYC_MODE$"),
+        re.compile(r"^A_CYC_STATE$"),
+        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$"),
+        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$"),
+        re.compile(r"^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$"),
+        re.compile(r"^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$"),
+        re.compile(r"^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
         re.compile(
-            "^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
+            r"^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
         ),
+        re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
     }
 
     _settable_addresses: Dict[int, type]

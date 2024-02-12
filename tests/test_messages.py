@@ -82,3 +82,22 @@ def test_log_read_response(messages: Messages):
     result = messages.log_read_response1.parse(response)
 
     assert 6 == result.fields.value.pages
+
+
+def test_alarm_resolve(messages: Messages, data_model: DataModel):
+    expected = binascii.unhexlify("0400 f900 0790 0200 0691".replace(" ", ""))
+
+    assert expected == messages.write_request.build(
+        {
+            "fields": {
+                "value": {
+                    "items": [
+                        {
+                            "address": data_model.addresses["A_CYC_FAULT_ACTIVITY"],
+                            "value": 2,
+                        }
+                    ]
+                }
+            }
+        }
+    )

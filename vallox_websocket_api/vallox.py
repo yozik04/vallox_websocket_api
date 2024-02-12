@@ -240,6 +240,7 @@ class MetricData:
 
             alarms.append(
                 Alarm(
+                    nr=i,
                     code=code,
                     severity=Alarm.Severity(severity),
                     first_date=first_date,
@@ -256,6 +257,7 @@ class MetricData:
 class Alarm:
     """Alarm dataclass"""
 
+    nr: int
     code: int
     severity: "Severity"
     first_date: datetime.date
@@ -287,7 +289,7 @@ class Alarm:
 
     def __repr__(self):
         return (
-            f"Alarm(code={self.code}, severity={self.severity}, first_date={self.first_date}, "
+            f"Alarm(nr={self.nr}, code={self.code}, severity={self.severity}, first_date={self.first_date}, "
             f"last_date={self.last_date}, count={self.count}, activity={self.activity}, "
             f"message='{self.message}')"
         )
@@ -435,4 +437,12 @@ class Vallox(Client):
                 "A_CYC_FILTER_CHANGED_MONTH": _date.month,
                 "A_CYC_FILTER_CHANGED_YEAR": _date.year - 2000,
             }
+        )
+
+    async def resolve_alarm(self, alarm: Alarm) -> None:
+        """Resolve an alarm"""
+
+        suffix = "" if alarm.nr == 1 else f"_{alarm.nr}"
+        await self.set_values(
+            {f"A_CYC_FAULT_ACTIVITY{suffix}": Alarm.Activity.SOLVED.value}
         )
