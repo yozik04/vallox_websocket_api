@@ -28,6 +28,18 @@ class Messages:
         self.data_model = data_model
 
     @cached_property
+    def ws_command(self) -> Enum:
+        ws_constants = self.data_model.websocket_constants
+
+        return Enum(
+            Int16ul,
+            READ_DATA=ws_constants["WS_WEB_UI_COMMAND_READ_DATA"],
+            WRITE_DATA=ws_constants["WS_WEB_UI_COMMAND_WRITE_DATA"],
+            READ_TABLES=ws_constants["WS_WEB_UI_COMMAND_READ_TABLES"],
+            LOG_RAW=ws_constants["WS_WEB_UI_COMMAND_LOG_RAW"],
+        )
+
+    @cached_property
     def write_request(self) -> Struct:
         return Struct(
             "fields"
@@ -36,17 +48,14 @@ class Messages:
                     "length"
                     / Rebuild(
                         Int16ul,
-                        len_(this.items) * _WriteCommand.sizeof() // Int16ul.sizeof()
-                        + 2,
+                        len_(this.items) * 2 + 2,
                     ),
                     "command"
                     / Const(
-                        self.data_model.websocket_constants[
-                            "WS_WEB_UI_COMMAND_WRITE_DATA"
-                        ],
-                        Int16ul,
+                        self.ws_command.WRITE_DATA,
+                        self.ws_command,
                     ),
-                    "items" / _WriteCommand[len_(this.items)],
+                    "items" / _WriteCommand[(this.length - 2) // 2],
                 )
             ),
             "checksum" / Checksum(Int16ul, _checksum_16, this.fields.data),
@@ -61,10 +70,8 @@ class Messages:
                     "length" / Const(3, Int16ul),
                     "command"
                     / Const(
-                        self.data_model.websocket_constants[
-                            "WS_WEB_UI_COMMAND_READ_TABLES"
-                        ],
-                        Int16ul,
+                        self.ws_command.READ_TABLES,
+                        self.ws_command,
                     ),
                     "items" / Const(0, Int16ul),
                 )
@@ -85,10 +92,8 @@ class Messages:
                     "length" / Const(2, Int16ul),
                     "command"
                     / Const(
-                        self.data_model.websocket_constants[
-                            "WS_WEB_UI_COMMAND_LOG_RAW"
-                        ],
-                        Int16ul,
+                        self.ws_command.LOG_RAW,
+                        self.ws_command,
                     ),
                 )
             ),
@@ -104,10 +109,8 @@ class Messages:
                     "length" / Const(3, Int16ul),
                     "command"
                     / Const(
-                        self.data_model.websocket_constants[
-                            "WS_WEB_UI_COMMAND_LOG_RAW"
-                        ],
-                        Int16ul,
+                        self.ws_command.LOG_RAW,
+                        self.ws_command,
                     ),
                     "pages" / Int16ul,
                 )
