@@ -387,6 +387,7 @@ class Vallox(Client):
             "model": data.model,
             "sw_version": data.sw_version,
             "uuid": data.uuid,
+            "ip_address": self.ip_address,
         }
 
     async def get_temperature(self, profile: PROFILE) -> Optional[float]:

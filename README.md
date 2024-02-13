@@ -1,8 +1,11 @@
 [![Test and Lint](https://github.com/yozik04/vallox_websocket_api/actions/workflows/test.yml/badge.svg)](https://github.com/yozik04/vallox_websocket_api/actions/workflows/test.yml)
-![PyPI - Status](https://img.shields.io/pypi/status/vallox_websocket_api)
+[![PyPI - Status](https://img.shields.io/pypi/status/vallox_websocket_api)](https://github.com/yozik04/vallox_websocket_api/actions)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/vallox_websocket_api)
-![PyPI](https://img.shields.io/pypi/v/vallox_websocket_api)
-![PyPI - License](https://img.shields.io/pypi/l/vallox_websocket_api)
+[![PyPI](https://img.shields.io/pypi/v/vallox_websocket_api)](https://pypi.org/project/vallox-websocket-api/)
+[![PyPI - License](https://img.shields.io/pypi/l/vallox_websocket_api)](./LICENSE.txt)
+[![Codecov](https://img.shields.io/codecov/c/github/yozik04/vallox_websocket_api)](https://app.codecov.io/gh/yozik04/vallox_websocket_api)
+
+
 
 # vallox_websocket_api
 New async version of WebSocket API for Vallox ventilation units
