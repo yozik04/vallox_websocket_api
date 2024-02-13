@@ -10,10 +10,10 @@ async def test_set_profile_home(vallox: Vallox):
 
     vallox.set_values.assert_called_once_with(
         {
-            "A_CYC_STATE": "0",
-            "A_CYC_BOOST_TIMER": "0",
-            "A_CYC_FIREPLACE_TIMER": "0",
-            "A_CYC_EXTRA_TIMER": "0",
+            "A_CYC_STATE": 0,
+            "A_CYC_BOOST_TIMER": 0,
+            "A_CYC_FIREPLACE_TIMER": 0,
+            "A_CYC_EXTRA_TIMER": 0,
         }
     )
 
@@ -25,10 +25,10 @@ async def test_set_profile_away(vallox: Vallox):
 
     vallox.set_values.assert_called_once_with(
         {
-            "A_CYC_STATE": "1",
-            "A_CYC_BOOST_TIMER": "0",
-            "A_CYC_FIREPLACE_TIMER": "0",
-            "A_CYC_EXTRA_TIMER": "0",
+            "A_CYC_STATE": 1,
+            "A_CYC_BOOST_TIMER": 0,
+            "A_CYC_FIREPLACE_TIMER": 0,
+            "A_CYC_EXTRA_TIMER": 0,
         }
     )
 
@@ -41,9 +41,9 @@ async def test_set_profile_boost(vallox: Vallox):
 
     vallox.set_values.assert_called_once_with(
         {
-            "A_CYC_BOOST_TIMER": "30",
-            "A_CYC_FIREPLACE_TIMER": "0",
-            "A_CYC_EXTRA_TIMER": "0",
+            "A_CYC_BOOST_TIMER": 30,
+            "A_CYC_FIREPLACE_TIMER": 0,
+            "A_CYC_EXTRA_TIMER": 0,
         }
     )
 
@@ -58,9 +58,9 @@ async def test_set_profile_fireplace(vallox: Vallox):
 
     vallox.set_values.assert_called_once_with(
         {
-            "A_CYC_BOOST_TIMER": "0",
-            "A_CYC_FIREPLACE_TIMER": "30",
-            "A_CYC_EXTRA_TIMER": "0",
+            "A_CYC_BOOST_TIMER": 0,
+            "A_CYC_FIREPLACE_TIMER": 30,
+            "A_CYC_EXTRA_TIMER": 0,
         }
     )
 
@@ -75,9 +75,9 @@ async def test_set_profile_extra(vallox: Vallox):
 
     vallox.set_values.assert_called_once_with(
         {
-            "A_CYC_BOOST_TIMER": "0",
-            "A_CYC_FIREPLACE_TIMER": "0",
-            "A_CYC_EXTRA_TIMER": "30",
+            "A_CYC_BOOST_TIMER": 0,
+            "A_CYC_FIREPLACE_TIMER": 0,
+            "A_CYC_EXTRA_TIMER": 30,
         }
     )
 
