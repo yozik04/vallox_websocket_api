@@ -129,7 +129,7 @@ def swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
 
-def _get_alarm_date(raw: int) -> Optional[date]:
+def _get_alarm_date(raw: Optional[int]) -> Optional[date]:
     if raw is None:
         return None
 
@@ -212,6 +212,7 @@ class MetricData:
         if fault_count is None:
             return []
 
+        fault_count = int(fault_count)
         alarms = []
         for i in range(1, fault_count + 1):
             suffix = "" if i == 1 else f"_{i}"
@@ -222,9 +223,7 @@ class MetricData:
             if code == 0:
                 continue
 
-            activity = self.data.get(f"A_CYC_FAULT_ACTIVITY{suffix}")
-            if activity is None:
-                activity = Alarm.Severity.UNKNOWN
+            activity = Alarm.Activity(self.data.get(f"A_CYC_FAULT_ACTIVITY{suffix}"))
 
             if skip_solved and activity == 2:
                 continue
@@ -234,14 +233,13 @@ class MetricData:
             )
             last_date = _get_alarm_date(self.data.get(f"A_CYC_FAULT_LAST_DATE{suffix}"))
 
-            severity = self.data.get(f"A_CYC_FAULT_SEVERITY{suffix}")
-            if severity is None:
-                severity = Alarm.Severity.UNKNOWN
+            severity = Alarm.Severity(self.data.get(f"A_CYC_FAULT_SEVERITY{suffix}"))
 
             alarms.append(
                 Alarm(
-                    code=code,
-                    severity=Alarm.Severity(severity),
+                    nr=i,
+                    code=int(code),
+                    severity=severity,
                     first_date=first_date,
                     last_date=last_date,
                     count=self.data.get(f"A_CYC_FAULT_COUNT{suffix}", None),
@@ -256,10 +254,11 @@ class MetricData:
 class Alarm:
     """Alarm dataclass"""
 
+    nr: int
     code: int
     severity: "Severity"
-    first_date: datetime.date
-    last_date: datetime.date
+    first_date: Optional[datetime.date]
+    last_date: Optional[datetime.date]
     count: int
     activity: "Activity"
 
@@ -287,7 +286,7 @@ class Alarm:
 
     def __repr__(self):
         return (
-            f"Alarm(code={self.code}, severity={self.severity}, first_date={self.first_date}, "
+            f"Alarm(nr={self.nr}, code={self.code}, severity={self.severity}, first_date={self.first_date}, "
             f"last_date={self.last_date}, count={self.count}, activity={self.activity}, "
             f"message='{self.message}')"
         )
@@ -325,58 +324,49 @@ class Vallox(Client):
             logger.info("Setting unit to HOME profile")
             await self.set_values(
                 {
-                    "A_CYC_STATE": "0",
-                    "A_CYC_BOOST_TIMER": "0",
-                    "A_CYC_FIREPLACE_TIMER": "0",
-                    "A_CYC_EXTRA_TIMER": "0",
+                    "A_CYC_STATE": 0,
+                    "A_CYC_BOOST_TIMER": 0,
+                    "A_CYC_FIREPLACE_TIMER": 0,
+                    "A_CYC_EXTRA_TIMER": 0,
                 }
             )
         elif profile == PROFILE.AWAY:
             logger.info("Setting unit to AWAY profile")
             await self.set_values(
                 {
-                    "A_CYC_STATE": "1",
-                    "A_CYC_BOOST_TIMER": "0",
-                    "A_CYC_FIREPLACE_TIMER": "0",
-                    "A_CYC_EXTRA_TIMER": "0",
+                    "A_CYC_STATE": 1,
+                    "A_CYC_BOOST_TIMER": 0,
+                    "A_CYC_FIREPLACE_TIMER": 0,
+                    "A_CYC_EXTRA_TIMER": 0,
                 }
             )
         elif profile == PROFILE.FIREPLACE:
-            if set_duration is not None:
-                dur = str(set_duration)
-            else:
-                dur = str(await self.fetch_metric("A_CYC_FIREPLACE_TIME"))
+            dur = set_duration or await self.fetch_metric("A_CYC_FIREPLACE_TIME")
             logger.info(f"Setting unit to FIREPLACE profile for {dur} minutes")
             await self.set_values(
                 {
-                    "A_CYC_BOOST_TIMER": "0",
+                    "A_CYC_BOOST_TIMER": 0,
                     "A_CYC_FIREPLACE_TIMER": dur,
-                    "A_CYC_EXTRA_TIMER": "0",
+                    "A_CYC_EXTRA_TIMER": 0,
                 }
             )
         elif profile == PROFILE.BOOST:
-            if set_duration is not None:
-                dur = str(set_duration)
-            else:
-                dur = str(await self.fetch_metric("A_CYC_BOOST_TIME"))
+            dur = set_duration or await self.fetch_metric("A_CYC_BOOST_TIME")
             logger.info(f"Setting unit to BOOST profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": dur,
-                    "A_CYC_FIREPLACE_TIMER": "0",
-                    "A_CYC_EXTRA_TIMER": "0",
+                    "A_CYC_FIREPLACE_TIMER": 0,
+                    "A_CYC_EXTRA_TIMER": 0,
                 }
             )
         elif profile == PROFILE.EXTRA:
-            if set_duration is not None:
-                dur = str(set_duration)
-            else:
-                dur = str(await self.fetch_metric("A_CYC_EXTRA_TIME"))
-                logger.info(f"Setting unit to EXTRA profile for {dur} minutes")
+            dur = set_duration or await self.fetch_metric("A_CYC_EXTRA_TIME")
+            logger.info(f"Setting unit to EXTRA profile for {dur} minutes")
             await self.set_values(
                 {
-                    "A_CYC_BOOST_TIMER": "0",
-                    "A_CYC_FIREPLACE_TIMER": "0",
+                    "A_CYC_BOOST_TIMER": 0,
+                    "A_CYC_FIREPLACE_TIMER": 0,
                     "A_CYC_EXTRA_TIMER": dur,
                 }
             )
@@ -436,4 +426,12 @@ class Vallox(Client):
                 "A_CYC_FILTER_CHANGED_MONTH": _date.month,
                 "A_CYC_FILTER_CHANGED_YEAR": _date.year - 2000,
             }
+        )
+
+    async def resolve_alarm(self, alarm: Alarm) -> None:
+        """Resolve an alarm"""
+
+        suffix = "" if alarm.nr == 1 else f"_{alarm.nr}"
+        await self.set_values(
+            {f"A_CYC_FAULT_ACTIVITY{suffix}": Alarm.Activity.SOLVED.value}
         )

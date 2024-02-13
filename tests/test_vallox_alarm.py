@@ -1,8 +1,17 @@
 import datetime
+from unittest import mock
 
 import pytest
 
-from vallox_websocket_api.vallox import Alarm, MetricData
+from vallox_websocket_api.vallox import Alarm, MetricData, Vallox
+
+
+@pytest.fixture
+def vallox():
+    client = Vallox("127.0.0.1")
+    client.set_values = mock.AsyncMock()
+
+    return client
 
 
 @pytest.fixture
@@ -217,6 +226,7 @@ async def test_get_info(metrics: dict):
     assert len(alarms) == 1
 
     alarm = alarms[0]
+    assert alarm.nr == 1
     assert alarm.code == 23
     assert alarm.severity == Alarm.Severity.SEVERE
     assert alarm.activity == Alarm.Activity.SOLVED
@@ -224,3 +234,19 @@ async def test_get_info(metrics: dict):
     assert alarm.first_date == datetime.date(2024, 1, 2)
     assert alarm.last_date == datetime.date(2024, 1, 7)
     assert alarm.message == "Low supply air temperature"
+
+
+async def test_resolve_alarm(vallox: Vallox):
+    alarm = Alarm(
+        nr=1,
+        code=23,
+        severity=Alarm.Severity.SEVERE,
+        first_date=datetime.date(2024, 1, 2),
+        last_date=datetime.date(2024, 1, 7),
+        count=0,
+        activity=Alarm.Activity.ACTIVE,
+    )
+
+    await vallox.resolve_alarm(alarm)
+
+    vallox.set_values.assert_called_once_with({"A_CYC_FAULT_ACTIVITY": 2})
