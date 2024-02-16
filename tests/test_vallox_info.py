@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 
-from vallox_websocket_api.vallox import Vallox
+from vallox_websocket_api import Vallox
 
 
 @pytest.fixture
