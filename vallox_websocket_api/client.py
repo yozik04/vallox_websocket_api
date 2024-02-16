@@ -104,6 +104,7 @@ class Client:
             r"^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
         ),
         re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
+        re.compile(r"^A_CYC_BYPASS_LOCKED$"),
     }
 
     _settable_addresses: Dict[int, type]
