@@ -35,7 +35,8 @@ def vallox():
 
 
 async def test_get_info(vallox: Vallox):
-    info = await vallox.get_info()
+    data = await vallox.fetch_metric_data()
+    info = data.info
 
     assert info["model"] == "Vallox 145 MV"
     assert info["sw_version"] == "2.0.2"

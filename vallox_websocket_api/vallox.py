@@ -135,6 +135,14 @@ class MetricData:
         return UUID(hex_string)
 
     @property
+    def info(self) -> Dict[str, Union[str, UUID]]:
+        return {
+            "model": self.model,
+            "sw_version": self.sw_version,
+            "uuid": self.uuid,
+        }
+
+    @property
     def profile(self) -> Profile:
         if self.get("A_CYC_BOOST_TIMER", 0) > 0:
             return Profile.BOOST
@@ -271,14 +279,6 @@ class Vallox(Client):
     async def fetch_metric_data(self) -> MetricData:
         return MetricData(await self.fetch_metrics())
 
-    async def get_profile(self) -> Profile:
-        """Returns the profile of the fan
-
-        :returns: One of PROFILE.* values or PROFILE.NONE if unknown
-        """
-        metrics = await self.fetch_metric_data()
-        return metrics.profile
-
     async def set_profile(
         self, profile: Profile, duration: Optional[int] = None
     ) -> None:
@@ -294,6 +294,18 @@ class Vallox(Client):
         """
 
         # duration: None means default configured setting. 65535 means no time out
+
+        metric_data_cache = None
+
+        async def lazy_fetch_metric_value(metric: str) -> int:
+            nonlocal metric_data_cache
+            if not metric_data_cache:
+                metric_data_cache = await self.fetch_metric_data()
+
+            value = metric_data_cache.get(metric)
+            if not isinstance(value, int):
+                raise ValloxInvalidInputException(f"Invalid value for metric {metric}")
+            return value
 
         if profile == Profile.HOME:
             logger.info("Setting unit to HOME profile")
@@ -316,7 +328,7 @@ class Vallox(Client):
                 }
             )
         elif profile == Profile.FIREPLACE:
-            dur = set_duration or await self.fetch_metric("A_CYC_FIREPLACE_TIME")
+            dur = set_duration or await lazy_fetch_metric_value("A_CYC_FIREPLACE_TIME")
             logger.info(f"Setting unit to FIREPLACE profile for {dur} minutes")
             await self.set_values(
                 {
@@ -326,7 +338,7 @@ class Vallox(Client):
                 }
             )
         elif profile == Profile.BOOST:
-            dur = set_duration or await self.fetch_metric("A_CYC_BOOST_TIME")
+            dur = set_duration or await lazy_fetch_metric_value("A_CYC_BOOST_TIME")
             logger.info(f"Setting unit to BOOST profile for {dur} minutes")
             await self.set_values(
                 {
@@ -336,7 +348,7 @@ class Vallox(Client):
                 }
             )
         elif profile == Profile.EXTRA:
-            dur = set_duration or await self.fetch_metric("A_CYC_EXTRA_TIME")
+            dur = set_duration or await lazy_fetch_metric_value("A_CYC_EXTRA_TIME")
             logger.info(f"Setting unit to EXTRA profile for {dur} minutes")
             await self.set_values(
                 {
@@ -346,19 +358,6 @@ class Vallox(Client):
                 }
             )
 
-    async def get_info(self) -> Dict[str, Union[str, UUID]]:
-        data = await self.fetch_metric_data()
-        return {
-            "model": data.model,
-            "sw_version": data.sw_version,
-            "uuid": data.uuid,
-            "ip_address": self.ip_address,
-        }
-
-    async def get_temperature(self, profile: Profile) -> Optional[float]:
-        data = await self.fetch_metric_data()
-        return data.get_temperature_setting(profile)
-
     async def set_temperature(self, profile: Profile, temperature: float) -> None:
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
             raise ValloxInvalidInputException(
@@ -367,10 +366,6 @@ class Vallox(Client):
         setting = PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile]
 
         await self.set_values({setting: temperature})
-
-    async def get_fan_speed(self, profile: Profile) -> Optional[int]:
-        data = await self.fetch_metric_data()
-        return data.get_fan_speed(profile)
 
     async def set_fan_speed(self, profile: Profile, percent: int) -> None:
         if percent < 0 or percent > 100:
@@ -382,14 +377,6 @@ class Vallox(Client):
             )
 
         await self.set_values({PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]: percent})
-
-    async def get_next_filter_change_date(self) -> Optional[date]:
-        """Returns the date for the next filter change.
-
-        :returns: next filter change date, or None if no date is available
-        """
-        data = await self.fetch_metric_data()
-        return data.next_filter_change_date
 
     async def set_filter_change_date(self, _date: date) -> None:
         """Set the next filter change date to today"""

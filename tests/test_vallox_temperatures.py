@@ -31,7 +31,8 @@ async def test_vallox_get_temperature(vallox):
         return_value={"A_CYC_HOME_AIR_TEMP_TARGET": 19}
     )
 
-    assert await vallox.get_temperature(Profile.HOME) == 19
+    data = await vallox.fetch_metric_data()
+    assert data.get_temperature_setting(Profile.HOME) == 19
     vallox.fetch_metrics.assert_called_once()
 
 

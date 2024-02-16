@@ -35,7 +35,7 @@ async def test_set_profile_away(vallox: Vallox):
 
 async def test_set_profile_boost(vallox: Vallox):
     vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metric = mock.AsyncMock(return_value=30)
+    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_BOOST_TIME": 30})
 
     await vallox.set_profile(Profile.BOOST)
 
@@ -47,12 +47,12 @@ async def test_set_profile_boost(vallox: Vallox):
         }
     )
 
-    vallox.fetch_metric.assert_called_once_with("A_CYC_BOOST_TIME")
+    vallox.fetch_metrics.assert_called_once()
 
 
 async def test_set_profile_fireplace(vallox: Vallox):
     vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metric = mock.AsyncMock(return_value=30)
+    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_FIREPLACE_TIME": 30})
 
     await vallox.set_profile(Profile.FIREPLACE)
 
@@ -64,12 +64,12 @@ async def test_set_profile_fireplace(vallox: Vallox):
         }
     )
 
-    vallox.fetch_metric.assert_called_once_with("A_CYC_FIREPLACE_TIME")
+    vallox.fetch_metrics.assert_called_once()
 
 
 async def test_set_profile_extra(vallox: Vallox):
     vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metric = mock.AsyncMock(return_value=30)
+    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_EXTRA_TIME": 30})
 
     await vallox.set_profile(Profile.EXTRA)
 
@@ -81,7 +81,7 @@ async def test_set_profile_extra(vallox: Vallox):
         }
     )
 
-    vallox.fetch_metric.assert_called_once_with("A_CYC_EXTRA_TIME")
+    vallox.fetch_metrics.assert_called_once()
 
 
 async def test_get_profile_home(vallox: Vallox):
@@ -94,7 +94,8 @@ async def test_get_profile_home(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.HOME
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.HOME
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -109,7 +110,8 @@ async def test_get_profile_away(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.AWAY
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.AWAY
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -124,7 +126,8 @@ async def test_get_profile_boost(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.BOOST
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.BOOST
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -137,7 +140,8 @@ async def test_get_profile_boost(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.BOOST
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.BOOST
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -152,7 +156,8 @@ async def test_get_profile_fireplace(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.FIREPLACE
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.FIREPLACE
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -165,7 +170,8 @@ async def test_get_profile_fireplace(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.FIREPLACE
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.FIREPLACE
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -180,7 +186,8 @@ async def test_get_profile_extra(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.EXTRA
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.EXTRA
 
     _assert_profile_metrics_fetched(vallox)
 
@@ -193,7 +200,8 @@ async def test_get_profile_extra(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_profile() == Profile.EXTRA
+    data = await vallox.fetch_metric_data()
+    assert data.profile == Profile.EXTRA
 
     _assert_profile_metrics_fetched(vallox)
 

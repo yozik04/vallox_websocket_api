@@ -14,7 +14,8 @@ async def test_checkNextFilterChangeDate(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_next_filter_change_date() == date(2022, 7, 29)
+    data = await vallox.fetch_metric_data()
+    assert data.next_filter_change_date == date(2022, 7, 29)
     vallox.fetch_metrics.assert_called_once()
 
 
@@ -28,7 +29,8 @@ async def test_nextFilterChangeInTheFuture(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_next_filter_change_date() == date(2022, 2, 16)
+    data = await vallox.fetch_metric_data()
+    assert data.next_filter_change_date == date(2022, 2, 16)
     vallox.fetch_metrics.assert_called_once()
 
 
@@ -42,7 +44,8 @@ async def test_nextFilterChangeTomorrow(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_next_filter_change_date() == date(2022, 2, 15)
+    data = await vallox.fetch_metric_data()
+    assert data.next_filter_change_date == date(2022, 2, 15)
     vallox.fetch_metrics.assert_called_once()
 
 
@@ -56,7 +59,8 @@ async def test_nextFilterChangeToday(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_next_filter_change_date() == date(2022, 2, 14)
+    data = await vallox.fetch_metric_data()
+    assert data.next_filter_change_date == date(2022, 2, 14)
     vallox.fetch_metrics.assert_called_once()
 
 
@@ -67,7 +71,8 @@ async def test_nextFilterChangeYesterday(vallox: Vallox):
         }
     )
 
-    assert await vallox.get_next_filter_change_date() is None
+    data = await vallox.fetch_metric_data()
+    assert data.next_filter_change_date is None
     vallox.fetch_metrics.assert_called_once()
 
 

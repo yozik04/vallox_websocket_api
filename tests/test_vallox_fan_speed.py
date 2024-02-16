@@ -49,5 +49,6 @@ async def test_set_fan_speed_home_invalid_percentage2(vallox: Vallox):
 async def test_get_fan_speed_for_profile_home(vallox: Vallox):
     vallox.fetch_metrics.return_value = {"A_CYC_HOME_SPEED_SETTING": 19}
 
-    assert await vallox.get_fan_speed(Profile.HOME) == 19
+    data = await vallox.fetch_metric_data()
+    assert data.get_fan_speed(Profile.HOME) == 19
     vallox.fetch_metrics.assert_called_once()
