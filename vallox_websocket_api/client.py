@@ -294,10 +294,7 @@ class Client:
 
         return series
 
-    async def fetch_metric(self, metric_key: str) -> MetricValue:
-        return (await self.fetch_metrics([metric_key])).get(metric_key, None)
-
-    async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> bool:
+    async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> None:
         await self.load_data_model()
 
         items = []
@@ -314,5 +311,3 @@ class Client:
             {"fields": {"value": {"items": items}}}
         )
         await self._websocket_request(payload)
-
-        return True

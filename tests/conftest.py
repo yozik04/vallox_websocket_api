@@ -3,8 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from websockets.legacy.protocol import WebSocketCommonProtocol
 
-from vallox_websocket_api.client import Client
-from vallox_websocket_api.vallox import Vallox
+from vallox_websocket_api import Client, Vallox
 
 
 @pytest.fixture

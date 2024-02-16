@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from vallox_websocket_api.vallox import Alarm, MetricData, Vallox
+from vallox_websocket_api import Alarm, MetricData, Vallox
 
 
 @pytest.fixture
