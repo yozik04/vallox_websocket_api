@@ -157,12 +157,11 @@ class MetricData:
         return Profile.NONE
 
     @property
-    def next_filter_change_date(self) -> Optional[date]:
+    def filter_change_date(self) -> Optional[date]:
         keys = [
             "A_CYC_FILTER_CHANGED_YEAR",
             "A_CYC_FILTER_CHANGED_MONTH",
             "A_CYC_FILTER_CHANGED_DAY",
-            "A_CYC_FILTER_CHANGE_INTERVAL",
         ]
         values = [self.get(key) for key in keys]
 
@@ -172,11 +171,18 @@ class MetricData:
         last_change_year = 2000 + int(values[0])
         last_change_month = int(values[1])
         last_change_day = int(values[2])
-        filter_change_interval_days = int(values[3])
 
-        return date(last_change_year, last_change_month, last_change_day) + timedelta(
-            days=filter_change_interval_days
-        )
+        return date(last_change_year, last_change_month, last_change_day)
+
+    @property
+    def next_filter_change_date(self) -> Optional[date]:
+        filter_change_date = self.filter_change_date
+        interval = self.get("A_CYC_FILTER_CHANGE_INTERVAL")
+
+        if interval is None or filter_change_date is None:
+            return None
+
+        return filter_change_date + timedelta(days=int(interval))
 
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
