@@ -20,4 +20,4 @@ __all__ = [
     "ValloxWebsocketException",
 ]
 
-__version__ = "5.0.2"
+__version__ = "5.1.0"
