@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from websockets.legacy.protocol import WebSocketCommonProtocol
+from websockets.client import WebSocketClientProtocol
 
 from vallox_websocket_api import Client, Vallox
 
@@ -25,7 +25,7 @@ async def vallox():
 @pytest.fixture
 def ws():
     with patch("websockets.client.connect") as connect:
-        protocol_mock = AsyncMock(spec=WebSocketCommonProtocol)
+        protocol_mock = AsyncMock(spec=WebSocketClientProtocol)
         connect.return_value.__aenter__.side_effect = protocol_mock
 
         yield protocol_mock.return_value
