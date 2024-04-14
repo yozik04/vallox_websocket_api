@@ -105,6 +105,7 @@ class Client:
         ),
         re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
         re.compile(r"^A_CYC_BYPASS_LOCKED$"),
+        re.compile(r"^A_CYC_.*_SETPOINT$"),
     }
 
     _settable_addresses: Dict[int, type]
@@ -180,6 +181,19 @@ class Client:
             f"Unable to add address '{address}' to settable list"
         )
 
+    def is_temperature(self, key: str) -> bool:
+        if key.startswith("A_CYC_TEMP_"):
+            return True
+        if key.endswith("TEMP_TARGET"):
+            return True
+        if key.endswith("DEFROST_TEMP"):
+            return True
+        if key.endswith("SETPOINT"):
+            return True
+        if key.endswith("SUPPLY_LOWER_LIMIT"):
+            return True
+        return False
+
     def _encode_pair(
         self, key: str, value: Union[int, float, str]
     ) -> Tuple[int, Union[int, float]]:
@@ -190,7 +204,7 @@ class Client:
         addresses = self.get_settable_addresses()
         assert address in addresses, f"{key} setting is not settable"
 
-        if "_TEMP_" in key:
+        if self.is_temperature(key):
             value = to_kelvin(float(value))
         raw_value: Union[int, float]
         try:
@@ -246,7 +260,7 @@ class Client:
                 self.data_model.calculate_offset(self.data_model.addresses[key])
             ]
 
-            if "_TEMP_" in key:
+            if self.is_temperature(key):
                 value = to_celsius(value)
             elif value == 0xFFFF:
                 value = None
