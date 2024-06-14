@@ -87,7 +87,7 @@ client = Vallox('192.168.1.10') # Vallox unit IP
 
 async def run():
     data = await client.fetch_metric_data()
-    profile = data.profile # RETURNS a PROFILE.* value
+    profile = data.profile # RETURNS a Profile.* value
     await client.set_profile(Profile.HOME) # Permanently HOME profile
     await client.set_profile(Profile.AWAY) # Permanently AWAY profile
     await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for configured timeout
