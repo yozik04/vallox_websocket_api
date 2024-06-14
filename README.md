@@ -82,20 +82,20 @@ Changing unit profile and reading metrics
 
 ```python
 import asyncio
-from vallox_websocket_api import Vallox, PROFILE
+from vallox_websocket_api import Vallox, Profile
 client = Vallox('192.168.1.10') # Vallox unit IP
 
 async def run():
     data = await client.fetch_metric_data()
     profile = data.profile # RETURNS a PROFILE.* value
-    await client.set_profile(PROFILE.HOME) # Permanently HOME profile
-    await client.set_profile(PROFILE.AWAY) # Permanently AWAY profile
-    await client.set_profile(PROFILE.FIREPLACE) # FIREPLACE mode for configured timeout
-    await client.set_profile(PROFILE.FIREPLACE, 120) # FIREPLACE mode for 120 min
-    await client.set_profile(PROFILE.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
-    await client.set_profile(PROFILE.EXTRA) # EXTRA mode for configured timeout
-    await client.set_profile(PROFILE.EXTRA, 120) # EXTRA mode for 120 min
-    await client.set_profile(PROFILE.EXTRA, 65535) # EXTRA mode, never TIMEOUT
+    await client.set_profile(Profile.HOME) # Permanently HOME profile
+    await client.set_profile(Profile.AWAY) # Permanently AWAY profile
+    await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for configured timeout
+    await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min
+    await client.set_profile(Profile.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
+    await client.set_profile(Profile.EXTRA) # EXTRA mode for configured timeout
+    await client.set_profile(Profile.EXTRA, 120) # EXTRA mode for 120 min
+    await client.set_profile(Profile.EXTRA, 65535) # EXTRA mode, never TIMEOUT
 
 asyncio.run(run())
 ```
