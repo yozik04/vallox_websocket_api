@@ -62,18 +62,18 @@ async def test_set_value(client: Client, ws):
     )
 
 
-async def test_set_assertion(client: Client, ws):
+@pytest.mark.parametrize(
+    "values",
+    [
+        ({"A_CYC_BOOST_TIMER": "11.2"}),
+        ({"A_CYC_BOOST_AIR_TEMP_TARGET": "11.a"}),
+        ({"A_CYC_BOOST_SPEED_SETTING": "11.2"}),
+        ({"A_CYC_FIREPLACE_SUPP_FAN": "11.2"}),
+    ],
+)
+async def test_set_invalid(client: Client, ws, values):
     with pytest.raises(ValloxInvalidInputException):
-        await client.set_values({"A_CYC_BOOST_TIMER": "11.2"})
-
-    with pytest.raises(ValloxInvalidInputException):
-        await client.set_values({"A_CYC_BOOST_AIR_TEMP_TARGET": "11.a"})
-
-    with pytest.raises(ValloxInvalidInputException):
-        await client.set_values({"A_CYC_BOOST_SPEED_SETTING": "11.2"})
-
-    with pytest.raises(ValloxInvalidInputException):
-        await client.set_values({"A_CYC_FIREPLACE_SUPP_FAN": "11.2"})
+        await client.set_values(values)
 
     ws.send.assert_not_called()
 
