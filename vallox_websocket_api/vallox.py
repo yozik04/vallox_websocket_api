@@ -249,7 +249,7 @@ class MetricData:
             )
         return self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
 
-    def get_profile_duration(self, profile: Profile) -> Optional[int]:
+    def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
         if profile == Profile.BOOST:
             return self.get("A_CYC_BOOST_TIMER")
         if profile == Profile.FIREPLACE:

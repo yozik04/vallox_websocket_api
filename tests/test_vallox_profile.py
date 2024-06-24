@@ -165,6 +165,6 @@ async def test_profiles(
     data = await vallox.fetch_metric_data()
     assert data.profile == expected_profile
 
-    assert data.get_profile_duration(data.profile) == expected_duration
+    assert data.get_remaining_profile_duration(data.profile) == expected_duration
 
     vallox.fetch_metrics.assert_called_once()
