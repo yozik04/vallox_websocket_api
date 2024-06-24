@@ -155,14 +155,17 @@ class MetricData:
         return f'MetricData(model="{self.model}",uuid="{self.uuid}",sw_version="{self.sw_version}",...,data={self._data})'
 
     def get(self, key: str, default: Optional[MetricValue] = None) -> MetricValue:
+        """Get data by key with optional default value"""
         data = self._data.get(key)
         return data if data is not None else default
 
     def items(self):
+        """Get data items"""
         return self._data.items()
 
     @property
     def model(self) -> Optional[str]:
+        """Get the model of the unit"""
         model_index = self.get("A_CYC_MACHINE_MODEL")
         if isinstance(model_index, int) and model_index < len(DEVICE_MODEL):
             return DEVICE_MODEL[model_index]
@@ -171,6 +174,7 @@ class MetricData:
 
     @property
     def sw_version(self) -> Optional[str]:
+        """Get the software version of the unit"""
         try:
             return ".".join(
                 str(_swap16(self.get(m)))
@@ -181,12 +185,14 @@ class MetricData:
 
     @property
     def uuid(self) -> UUID:
+        """Get the UUID of the unit"""
         int_values = [self.get(m) for m in [f"A_CYC_UUID{i}" for i in range(0, 8)]]
         hex_string = "".join(f"{i:04x}" for i in int_values)
         return UUID(hex_string)
 
     @property
     def info(self) -> Dict[str, Union[str, UUID]]:
+        """Get the unit info as a dictionary"""
         return {
             "model": self.model,
             "sw_version": self.sw_version,
@@ -195,6 +201,7 @@ class MetricData:
 
     @property
     def profile(self) -> Profile:
+        """Get the current profile of the unit"""
         if self.get("A_CYC_BOOST_TIMER", 0) > 0:
             return Profile.BOOST
         if self.get("A_CYC_FIREPLACE_TIMER", 0) > 0:
@@ -209,6 +216,7 @@ class MetricData:
 
     @property
     def filter_change_date(self) -> Optional[date]:
+        """Get the last filter change date"""
         keys = [
             "A_CYC_FILTER_CHANGED_YEAR",
             "A_CYC_FILTER_CHANGED_MONTH",
@@ -227,6 +235,7 @@ class MetricData:
 
     @property
     def next_filter_change_date(self) -> Optional[date]:
+        """Get the next filter change date based on the interval and last change date"""
         filter_change_date = self.filter_change_date
         interval = self.get("A_CYC_FILTER_CHANGE_INTERVAL")
 
@@ -236,6 +245,7 @@ class MetricData:
         return filter_change_date + timedelta(days=int(interval))
 
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
+        """Get the temperature setting for the profile"""
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
             raise ValloxInvalidInputException(
                 f"Temperature is not gettable for profile: {profile}"
@@ -243,6 +253,7 @@ class MetricData:
         return self.get(PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile])
 
     def get_fan_speed(self, profile: Profile) -> Optional[int]:
+        """Get the fan speed for the profile"""
         if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
             raise ValloxInvalidInputException(
                 f"Fan speed is not gettable for profile: {profile}"
@@ -250,6 +261,7 @@ class MetricData:
         return self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
 
     def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
+        """Get the remaining duration of the profile in minutes"""
         if profile == Profile.BOOST:
             return self.get("A_CYC_BOOST_TIMER")
         if profile == Profile.FIREPLACE:
@@ -259,6 +271,7 @@ class MetricData:
         return None
 
     def get_alarms(self, skip_solved=True) -> list["Alarm"]:
+        """Get the alarms of the unit"""
         fault_count = self.get("A_CYC_TOTAL_FAULT_COUNT")
         if fault_count is None:
             return []
@@ -328,6 +341,7 @@ class Alarm:
 
     @property
     def message(self) -> str:
+        """Get the alarm message"""
         try:
             return ALARM_MESSAGES[self.code]["text"]
         except IndexError:
@@ -343,23 +357,21 @@ class Alarm:
 
 class Vallox(Client):
     async def fetch_metric_data(self) -> MetricData:
+        """Fetch the metric data from the unit"""
         return MetricData(await self.fetch_metrics())
 
     async def set_profile(
         self, profile: Profile, duration: Optional[int] = None
     ) -> None:
-        set_duration = None
-        if duration is not None and 0 <= int(duration) <= 65535:
-            set_duration = int(duration)
-
         """Set the profile of the unit
 
         :params:
-          :profile: One of PROFILE.* values
-          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles
+          :profile: One of Profile.* values
+          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles (None means default configured setting. 65535 means no time out)
         """
-
-        # duration: None means default configured setting. 65535 means no time out
+        set_duration = None
+        if duration is not None and 0 <= int(duration) <= 65535:
+            set_duration = int(duration)
 
         metric_data_cache = None
 
@@ -425,6 +437,7 @@ class Vallox(Client):
             )
 
     async def set_temperature(self, profile: Profile, temperature: float) -> None:
+        """Set the temperature for the profile"""
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
             raise ValloxInvalidInputException(
                 f"Temperature is not settable for profile: {profile}"
@@ -434,6 +447,7 @@ class Vallox(Client):
         await self.set_values({setting: temperature})
 
     async def set_fan_speed(self, profile: Profile, percent: int) -> None:
+        """Set the fan speed for the profile"""
         if percent < 0 or percent > 100:
             raise ValloxInvalidInputException("Fan speed must be between 0 and 100")
 
