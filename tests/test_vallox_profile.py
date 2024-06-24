@@ -1,210 +1,170 @@
 from unittest import mock
 
+import pytest
+
 from vallox_websocket_api import Profile, Vallox
 
 
-async def test_set_profile_home(vallox: Vallox):
+@pytest.mark.parametrize(
+    "profile,fetch_metrics,expected_values",
+    [
+        (
+            Profile.HOME,
+            None,
+            {
+                "A_CYC_STATE": 0,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+        ),
+        (
+            Profile.AWAY,
+            None,
+            {
+                "A_CYC_STATE": 1,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+        ),
+        (
+            Profile.BOOST,
+            {"A_CYC_BOOST_TIME": 10},
+            {
+                "A_CYC_BOOST_TIMER": 10,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+        ),
+        (
+            Profile.FIREPLACE,
+            {"A_CYC_FIREPLACE_TIME": 20},
+            {
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 20,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+        ),
+        (
+            Profile.EXTRA,
+            {"A_CYC_EXTRA_TIME": 30},
+            {
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 30,
+            },
+        ),
+    ],
+)
+async def test_set_profile(vallox: Vallox, profile, fetch_metrics, expected_values):
     vallox.set_values = mock.AsyncMock()
+    if profile in [Profile.BOOST, Profile.FIREPLACE, Profile.EXTRA]:
+        vallox.fetch_metrics = mock.AsyncMock(return_value=fetch_metrics)
+    else:
+        vallox.fetch_metrics = mock.AsyncMock()
+    await vallox.set_profile(profile)
+    vallox.set_values.assert_called_once_with(expected_values)
 
-    await vallox.set_profile(Profile.HOME)
-
-    vallox.set_values.assert_called_once_with(
-        {
-            "A_CYC_STATE": 0,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-
-async def test_set_profile_away(vallox: Vallox):
-    vallox.set_values = mock.AsyncMock()
-
-    await vallox.set_profile(Profile.AWAY)
-
-    vallox.set_values.assert_called_once_with(
-        {
-            "A_CYC_STATE": 1,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
+    if fetch_metrics:
+        vallox.fetch_metrics.assert_called_once()
+    else:
+        vallox.fetch_metrics.assert_not_called()
 
 
-async def test_set_profile_boost(vallox: Vallox):
-    vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_BOOST_TIME": 30})
-
-    await vallox.set_profile(Profile.BOOST)
-
-    vallox.set_values.assert_called_once_with(
-        {
-            "A_CYC_BOOST_TIMER": 30,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    vallox.fetch_metrics.assert_called_once()
-
-
-async def test_set_profile_fireplace(vallox: Vallox):
-    vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_FIREPLACE_TIME": 30})
-
-    await vallox.set_profile(Profile.FIREPLACE)
-
-    vallox.set_values.assert_called_once_with(
-        {
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 30,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    vallox.fetch_metrics.assert_called_once()
-
-
-async def test_set_profile_extra(vallox: Vallox):
-    vallox.set_values = mock.AsyncMock()
-    vallox.fetch_metrics = mock.AsyncMock(return_value={"A_CYC_EXTRA_TIME": 30})
-
-    await vallox.set_profile(Profile.EXTRA)
-
-    vallox.set_values.assert_called_once_with(
-        {
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 30,
-        }
-    )
-
-    vallox.fetch_metrics.assert_called_once()
-
-
-async def test_get_profile_home(vallox: Vallox):
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 0,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.HOME
-
-    _assert_profile_metrics_fetched(vallox)
-
-
-async def test_get_profile_away(vallox: Vallox):
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 1,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
+@pytest.mark.parametrize(
+    "metrics_return, expected_profile, expected_duration",
+    [
+        (
+            {
+                "A_CYC_STATE": 0,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.HOME,
+            None,
+        ),
+        (
+            {
+                "A_CYC_STATE": 1,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.AWAY,
+            None,
+        ),
+        (
+            {
+                "A_CYC_STATE": 0,
+                "A_CYC_BOOST_TIMER": 10,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.BOOST,
+            10,
+        ),
+        (
+            {
+                "A_CYC_STATE": 1,
+                "A_CYC_BOOST_TIMER": 11,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.BOOST,
+            11,
+        ),
+        (
+            {
+                "A_CYC_STATE": 0,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 20,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.FIREPLACE,
+            20,
+        ),
+        (
+            {
+                "A_CYC_STATE": 1,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 21,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.FIREPLACE,
+            21,
+        ),
+        (
+            {
+                "A_CYC_STATE": 0,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 30,
+            },
+            Profile.EXTRA,
+            30,
+        ),
+        (
+            {
+                "A_CYC_STATE": 1,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 31,
+            },
+            Profile.EXTRA,
+            31,
+        ),
+    ],
+)
+async def test_profiles(
+    vallox: Vallox, metrics_return, expected_profile, expected_duration
+):
+    vallox.fetch_metrics = mock.AsyncMock(return_value=metrics_return)
 
     data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.AWAY
+    assert data.profile == expected_profile
 
-    _assert_profile_metrics_fetched(vallox)
+    assert data.get_profile_duration(data.profile) == expected_duration
 
-
-async def test_get_profile_boost(vallox: Vallox):
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 0,
-            "A_CYC_BOOST_TIMER": 30,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.BOOST
-
-    _assert_profile_metrics_fetched(vallox)
-
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 1,
-            "A_CYC_BOOST_TIMER": 30,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.BOOST
-
-    _assert_profile_metrics_fetched(vallox)
-
-
-async def test_get_profile_fireplace(vallox: Vallox):
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 0,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 30,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.FIREPLACE
-
-    _assert_profile_metrics_fetched(vallox)
-
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 1,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 30,
-            "A_CYC_EXTRA_TIMER": 0,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.FIREPLACE
-
-    _assert_profile_metrics_fetched(vallox)
-
-
-async def test_get_profile_extra(vallox: Vallox):
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 0,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 30,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.EXTRA
-
-    _assert_profile_metrics_fetched(vallox)
-
-    vallox.fetch_metrics = mock.AsyncMock(
-        return_value={
-            "A_CYC_STATE": 1,
-            "A_CYC_BOOST_TIMER": 0,
-            "A_CYC_FIREPLACE_TIMER": 0,
-            "A_CYC_EXTRA_TIMER": 30,
-        }
-    )
-
-    data = await vallox.fetch_metric_data()
-    assert data.profile == Profile.EXTRA
-
-    _assert_profile_metrics_fetched(vallox)
-
-
-def _assert_profile_metrics_fetched(vallox):
     vallox.fetch_metrics.assert_called_once()

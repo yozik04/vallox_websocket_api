@@ -249,6 +249,15 @@ class MetricData:
             )
         return self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
 
+    def get_profile_duration(self, profile: Profile) -> Optional[int]:
+        if profile == Profile.BOOST:
+            return self.get("A_CYC_BOOST_TIMER")
+        if profile == Profile.FIREPLACE:
+            return self.get("A_CYC_FIREPLACE_TIMER")
+        if profile == Profile.EXTRA:
+            return self.get("A_CYC_EXTRA_TIMER")
+        return None
+
     def get_alarms(self, skip_solved=True) -> list["Alarm"]:
         fault_count = self.get("A_CYC_TOTAL_FAULT_COUNT")
         if fault_count is None:
