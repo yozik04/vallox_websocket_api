@@ -118,6 +118,7 @@ class Client:
         self._settable_addresses = {}
 
     async def load_data_model(self) -> None:
+        """Load data model from unit or local file."""
         if self.data_model.is_valid:
             return
 
@@ -132,6 +133,7 @@ class Client:
         raise DataModelReadException("Failed to load data model")
 
     async def load_data_model_from_unit(self) -> bool:
+        """Load data model from unit."""
         for path in ["js/bundle.js", "js/vallox.js"]:
             url = f"http://{self.ip_address}/{path}"
             logger.info(f"Attempting to load data model from {url}")
@@ -147,6 +149,7 @@ class Client:
         return False
 
     async def load_bundled_data_model(self, version: str) -> bool:
+        """Load bundled data model."""
         try:
             await self.data_model.read_bundled(version)
             self._on_model_loaded()
@@ -163,9 +166,11 @@ class Client:
         }
 
     def get_settable_addresses(self) -> Dict[int, type]:
+        """Get settable addresses."""
         return self._settable_addresses
 
     def set_settable_address(self, address: Union[int, str], var_type: type) -> None:
+        """Set settable address."""
         if var_type not in [int, float]:
             raise ValloxInvalidInputException("Only float or int types are supported")
 
@@ -182,6 +187,7 @@ class Client:
         )
 
     def is_temperature(self, key: str) -> bool:
+        """Check if key is related to a temperature."""
         if key.startswith("A_CYC_TEMP_"):
             return True
         if key.endswith("TEMP_TARGET"):
@@ -244,6 +250,7 @@ class Client:
     async def fetch_metrics(
         self, metric_keys: Optional[List[str]] = None
     ) -> MetricDict:
+        """Fetch metrics."""
         await self.load_data_model()
 
         metrics = {}
@@ -270,6 +277,7 @@ class Client:
         return metrics
 
     async def fetch_raw_logs(self) -> List[List[Dict[str, Union[int, float]]]]:
+        """Fetch raw logs."""
         await self.load_data_model()
 
         payload = self.messages.log_read_request.build({})
@@ -310,6 +318,7 @@ class Client:
         return series
 
     async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> None:
+        """Set values."""
         await self.load_data_model()
 
         items = []
