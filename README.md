@@ -34,27 +34,102 @@ Code will use websockets API that Valox's own web interface uses.
 
 Tested only with **Vallox 145 MV** and **Vallox 270 MV**.
 
-But API should also work with next units:
+But API should also work with the following units:
 
-    "Vallox 096 MV",
-    "Vallox 110 MV",
-    "Vallox 145 MV",
-    "Vallox 245 MV",
-    "ValloPlus 270 MV",
-    "ValloPlus 350 MV",
-    "ValloPlus 510 MV",
-    "ValloPlus 850 MV",
-    "Vallox TSK Multi 50 MV",
-    "Vallox TSK Multi 80 MV",
-    "ValloMulti 200 MV",
-    "ValloMulti 300 MV",
-    "DV96 Adroit",
-    "DV110 Adroit",
-    "DV145 Adroit",
-    "DV245 Adroit",
-    "DV TSK Multi 50 Adroit",
-    "DV TSK Multi 80 Adroit"
+Vallox:
 
+- Vallox 096 MV
+- Vallox 096 MV-E
+- Vallox 110 MV
+- Vallox 110 MV-E
+- Vallox 145 MV
+- Vallox 145 MV-E
+- Vallox 245 MV
+- Vallox 245 MV-E
+- Vallox 51 MV
+- Vallox 51 MV-E
+- Vallox 101 MV
+- Vallox 101 MV-E
+- Vallox 90 MV
+- Vallox 90K MV
+- Vallox 139 MV
+- Vallox 139 MV-E
+- Vallox 99 MV
+- Vallox 99 MV CF
+- Vallox 125 MV
+- ValloPlus 180 MV
+- ValloPlus 180-K MV
+- ValloPlus 180-E MV
+- ValloPlus 240 MV
+- ValloPlus 240-K MV
+- ValloPlus 240-E MV
+- ValloPlus 270 MV
+- ValloPlus 270 MV-E
+- ValloPlus 350 MV
+- ValloPlus 350 MV-E
+- ValloPlus 370 MV
+- ValloPlus 370 MV-E
+- ValloPlus 510 MV
+- ValloPlus 510 MV-E
+- ValloPlus 850 MV
+- ValloPlus 850 MV-E
+- Vallox TSK Multi 50 MV
+- Vallox TSK Multi 80 MV
+- TSK Multi 50 MV-E
+- TSK Multi 80 MV-E
+- ValloMulti 200 MV
+- ValloMulti 200 MV-E
+- ValloMulti 300 MV
+- ValloMulti 300 MV-E
+
+Airflow:
+
+- DV96 Adroit
+- DV110 Adroit
+- DV145 Adroit
+- DV245 Adroit
+- DV51 Adroit
+- DV51K Adroit
+- DV90 Adroit
+- DV90K Adroit
+- DV 139 adroit
+- DV TSK Multi 50 Adroit
+- DV TSK Multi 80 Adroit
+
+Devices with Helios easyControls 3.0:
+
+- KWL 170 W
+- KWL 170 W ET
+- KWL 200 W R
+- KWL 200 W L
+- KWL 200 W ET R
+- KWL 200 W ET L
+- KWL 220 D R
+- KWL 220 D L
+- KWL 250 W
+- KWL 250 W ET
+- KWL 300 W R
+- KWL 300 W L
+- KWL 300 W ET R
+- KWL 300 W ET L
+- KWL 340 D R
+- KWL 340 D L
+- KWL 360 W
+- KWL 360 W ET
+- KWL 470 W
+- KWL 470 W ET
+- KWL 500 W R
+- KWL 500 W L
+- KWL 500 W ET R
+- KWL 500 W ET L
+- KWL 890 W L
+- KWL 890 W R
+- KWL 890 W ET L
+- KWL 890 W ET R
+
+Other:
+
+- Aito kotilämpökone
 
 # Dependencies
 
