@@ -30,4 +30,4 @@ jobs:
         python -m pip install .
         pytest tests/ --cov=vallox_websocket_api --cov-report=xml
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
