@@ -35,6 +35,37 @@ PROFILE_TO_SET_FAN_SPEED_METRIC_MAP = {
     Profile.BOOST: "A_CYC_BOOST_SPEED_SETTING",
 }
 
+PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP = {
+    Profile.HOME: "A_CYC_HOME_RH_CTRL_ENABLED",
+    Profile.AWAY: "A_CYC_AWAY_RH_CTRL_ENABLED",
+    Profile.BOOST: "A_CYC_BOOST_RH_CTRL_ENABLED",
+}
+
+PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP = {
+    Profile.HOME: "A_CYC_HOME_CO2_CTRL_ENABLED",
+    Profile.AWAY: "A_CYC_AWAY_CO2_CTRL_ENABLED",
+    Profile.BOOST: "A_CYC_BOOST_CO2_CTRL_ENABLED",
+}
+
+SET_RH_SENSOR_CONTROL_MODE   = "A_CYC_RH_LEVEL_MODE"
+SET_RH_SENSOR_CONTROL_LIMIT  = "A_CYC_RH_BASIC_LEVEL"
+SET_CO2_SENSOR_CONTROL_LIMIT = "A_CYC_CO2_THRESHOLD"
+
+class CellState(IntEnum):
+    HEAT_RECOVERY = 0 # C_CYC_CELL_STATE_HEATRECO
+    COOL_RECOVERY = 1 # C_CYC_CELL_STATE_COOLRECO
+    BYPASS        = 2 # C_CYC_CELL_STATE_BYPASS
+    DEFROST       = 3 # C_CYC_CELL_STATE_DEFROST
+
+class SupplyHeatingAdjustMode(IntEnum):
+    SUPPLY  = 0 # C_CYC_HEATING_SUPPLY
+    EXTRACT = 1 # C_CYC_HEATING_EXTRACT
+    COOLING = 2 # C_CYC_HEATING_COOLING
+
+class DefrostMode(IntEnum):
+    BYPASS   = 0 # C_CYC_BYPASS_MODE
+    FAN_STOP = 1 # C_CYC_FAN_STOP_MODE
+
 DEVICE_MODEL = [
     None,
     "Vallox 096 MV",
@@ -244,6 +275,68 @@ class MetricData:
 
         return filter_change_date + timedelta(days=int(interval))
 
+    @property
+    def supply_heating_adjust_mode(self) -> Optional[int]:
+        """Get the current supply heating adjust mode.
+        Returns:
+            int: 0 (supply), 1 (extract), or 2 (cooling)
+        """
+        return self.get("A_CYC_SUPPLY_HEATING_ADJUST_MODE")
+
+    def get_supply_heating_adjust_mode(self) -> Optional[SupplyHeatingAdjustMode]:
+        """Get the current supply heating adjust mode.
+        Returns:
+            SupplyHeatingAdjustMode: 'Supply'(0), 'Extract' (1), or 'Cooling' (2)
+        """
+        mode = self.supply_heating_adjust_mode
+        if mode is None:
+            return None
+        return SupplyHeatingAdjustMode(mode)
+
+    def get_supply_heating_adjust_mode_name(self) -> Optional[str]:
+        """Get the current supply heating adjust mode as a string.
+        Returns:
+            str: 'Supply', 'Extract', or 'Cooling'
+        """
+        mode = self.get_supply_heating_adjust_mode()
+        if mode == SupplyHeatingAdjustMode.SUPPLY:
+            return "Supply"
+        if mode == SupplyHeatingAdjustMode.EXTRACT:
+            return "Extract"
+        if mode == SupplyHeatingAdjustMode.COOLING:
+            return "Cooling"
+        return None
+
+    @property
+    def defrost_mode(self) -> Optional[int]:
+        """Get the current defrost mode.
+        Returns:
+            int: 0 (bypass), 1 (fanstop)
+        """
+        return self.get("A_CYC_DEFROST_MODE")
+
+    def get_defrost_mode(self) -> Optional[DefrostMode]:
+        """Get the current supply heating adjust mode.
+        Returns:
+            DefrostMode: 'Bypass'(0), 'Fanstop' (1)
+        """
+        mode = self.defrost_mode
+        if mode is None:
+            return None
+        return DefrostMode(mode)
+
+    def get_defrost_mode_name(self) -> Optional[str]:
+        """Get the current defrost mode as a string.
+        Returns:
+            str: 'Bypass', 'Fanstop'
+        """
+        mode = self.get_defrost_mode()
+        if mode == DefrostMode.BYPASS:
+            return "Bypass"
+        if mode == DefrostMode.FAN_STOP:
+            return "Fanstop"
+        return None
+
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
         """Get the temperature setting for the profile"""
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
@@ -260,6 +353,22 @@ class MetricData:
             )
         return self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
 
+    def get_rh_sensor_control(self, profile: Profile) -> Optional[bool]:
+        """Return true if the RH sensor control is enabled for the profile, false otherwise"""
+        if profile not in PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"RH sensor control is not gettable for profile: {profile}"
+            )
+        return self.get(PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP[profile])
+
+    def get_co2_sensor_control(self, profile: Profile) -> Optional[bool]:
+        """Return true if the CO2 sensor control is enabled for the profile, false otherwise"""
+        if profile not in PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"CO2 sensor control is not gettable for profile: {profile}"
+            )
+        return self.get(PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP[profile])
+
     def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
         """Get the remaining duration of the profile in minutes"""
         if profile == Profile.BOOST:
@@ -269,6 +378,18 @@ class MetricData:
         if profile == Profile.EXTRA:
             return self.get("A_CYC_EXTRA_TIMER")
         return None
+
+    def get_rh_sensor_control_mode(self) -> Optional[int]:
+        """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
+        return self.get(SET_RH_SENSOR_CONTROL_MODE)
+
+    def get_rh_sensor_limit(self) -> Optional[int]:
+        """Return the RH sensor limit percentage (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
+        return self.get(SET_RH_SENSOR_CONTROL_LIMIT)
+
+    def get_co2_sensor_limit(self) -> Optional[int]:
+        """Return the CO2 sensor ppm limit (500-2000)."""
+        return self.get(SET_CO2_SENSOR_CONTROL_LIMIT)
 
     def get_alarms(self, skip_solved=True) -> list["Alarm"]:
         """Get the alarms of the unit"""
@@ -455,8 +576,69 @@ class Vallox(Client):
             raise ValloxInvalidInputException(
                 f"Fan speed is not settable for profile: {profile}"
             )
+        setting = PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]
 
-        await self.set_values({PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile]: percent})
+        await self.set_values({setting: percent})
+
+    async def set_rh_sensor_control(self, profile: Profile, enable: bool) -> None:
+        """Enable/disable the RH sensor control of the profile"""
+        if profile not in PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"RH sensor control is not settable for profile: {profile}"
+            )
+        setting = PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP[profile]
+
+        await self.set_values({setting: enable})
+
+    async def set_co2_sensor_control(self, profile: Profile, enable: bool) -> None:
+        """Enable/disable the CO2 sensor control of the profile"""
+        if profile not in PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"CO2 sensor control is not settable for profile: {profile}"
+            )
+        setting = PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP[profile]
+
+        await self.set_values({setting: enable})
+
+    async def set_rh_sensor_control_mode(self, mode: int) -> None:
+        """Set the RH sensor mode to manual (1) or automatic (0)"""
+        if mode < 0 or mode > 1:
+            raise ValloxInvalidInputException("RH sensor control mode must be 0 (automatic) or 1 (manual)")
+        return self.set_values({SET_RH_SENSOR_CONTROL_MODE: mode})
+
+    async def set_rh_sensor_limit(self, percent: int) -> None:
+        """Set the RH sensor limit (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
+        if percent < 0 or percent > 100:
+            raise ValloxInvalidInputException("RH sensor limit must be between 0 and 100")
+        return self.set_values({SET_RH_SENSOR_CONTROL_LIMIT: percent})
+
+    async def set_co2_sensor_limit(self, ppm: int) -> None:
+        """Set the CO2 sensor ppm limit (500-2000)."""
+        if percent < 500 or percent > 2000:
+            raise ValloxInvalidInputException("CO2 sensor limit must be between 500 and 2000")
+        return self.set_values({SET_CO2_SENSOR_CONTROL_LIMIT: ppm})
+
+    async def set_supply_heating_adjust_mode(self, mode: SupplyHeatingAdjustMode) -> None:
+        """Set the supply heating adjust mode.
+        Args:
+            mode: 0 (supply), 1 (extract), or 2 (cooling)
+        Raises:
+            ValloxInvalidInputException: If mode is not 0, 1, or 2
+        """
+        if not isinstance(mode, SupplyHeatingAdjustMode):
+            raise ValloxInvalidInputException("Mode must be a SupplyHeatingAdjustMode enum value (0, 1, or 2)")
+        await self.set_values({"A_CYC_SUPPLY_HEATING_ADJUST_MODE": mode.value})
+
+    async def set_defrost_mode(self, mode: DefrostMode) -> None:
+        """Set the defrost mode.
+        Args:
+            mode: 0 (bypass), 1 (fanstop)
+        Raises:
+            ValloxInvalidInputException: If mode is not 0, 1, or 2
+        """
+        if not isinstance(mode, DefrostMode):
+            raise ValloxInvalidInputException("Mode must be a DefrostMode enum value (0 or 1)")
+        await self.set_values({"A_CYC_DEFROST_MODE": mode.value})
 
     async def set_filter_change_date(self, _date: date) -> None:
         """Set the next filter change date to today"""

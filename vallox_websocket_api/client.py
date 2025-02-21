@@ -106,6 +106,17 @@ class Client:
         re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
         re.compile(r"^A_CYC_BYPASS_LOCKED$"),
         re.compile(r"^A_CYC_.*_SETPOINT$"),
+        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST)_RH_CTRL_ENABLED$"),
+        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST)_CO2_CTRL_ENABLED$"),
+        re.compile(r"^A_CYC_CO2_THRESHOLD$"),
+        re.compile(r"^A_CYC_RH_LEVEL_MODE$"),
+        re.compile(r"^A_CYC_RH_BASIC_LEVEL$"),
+        re.compile(r"^A_CYC_PARTIAL_BYPASS$"),
+        re.compile(r"^A_CYC_SUPPLY_HEATING_ADJUST_MODE$"),
+        re.compile(r"^A_CYC_POST_HEATER_WINTER_SETPOINT$"),
+        re.compile(r"^A_CYC_COOLRECOVERY_DISABLED$"),
+        re.compile(r"^A_CYC_DEFROST_MODE$"),
+        re.compile(r"^A_CYC_SUPPLY_AIR_DEFROST_TEMP$"),
     }
 
     _settable_addresses: Dict[int, type]
