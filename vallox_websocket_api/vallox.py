@@ -614,7 +614,7 @@ class Vallox(Client):
 
     async def set_co2_sensor_limit(self, ppm: int) -> None:
         """Set the CO2 sensor ppm limit (500-2000)."""
-        if percent < 500 or percent > 2000:
+        if ppm < 500 or ppm > 2000:
             raise ValloxInvalidInputException("CO2 sensor limit must be between 500 and 2000")
         return self.set_values({SET_CO2_SENSOR_CONTROL_LIMIT: ppm})
 
