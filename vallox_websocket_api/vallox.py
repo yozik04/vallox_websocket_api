@@ -276,66 +276,26 @@ class MetricData:
         return filter_change_date + timedelta(days=int(interval))
 
     @property
-    def supply_heating_adjust_mode(self) -> Optional[int]:
-        """Get the current supply heating adjust mode.
-        Returns:
-            int: 0 (supply), 1 (extract), or 2 (cooling)
-        """
-        return self.get("A_CYC_SUPPLY_HEATING_ADJUST_MODE")
-
-    def get_supply_heating_adjust_mode(self) -> Optional[SupplyHeatingAdjustMode]:
+    def supply_heating_adjust_mode(self) -> Optional[SupplyHeatingAdjustMode]:
         """Get the current supply heating adjust mode.
         Returns:
             SupplyHeatingAdjustMode: 'Supply'(0), 'Extract' (1), or 'Cooling' (2)
         """
-        mode = self.supply_heating_adjust_mode
+        mode = self.get("A_CYC_SUPPLY_HEATING_ADJUST_MODE")
         if mode is None:
             return None
         return SupplyHeatingAdjustMode(mode)
 
-    def get_supply_heating_adjust_mode_name(self) -> Optional[str]:
-        """Get the current supply heating adjust mode as a string.
-        Returns:
-            str: 'Supply', 'Extract', or 'Cooling'
-        """
-        mode = self.get_supply_heating_adjust_mode()
-        if mode == SupplyHeatingAdjustMode.SUPPLY:
-            return "Supply"
-        if mode == SupplyHeatingAdjustMode.EXTRACT:
-            return "Extract"
-        if mode == SupplyHeatingAdjustMode.COOLING:
-            return "Cooling"
-        return None
-
     @property
-    def defrost_mode(self) -> Optional[int]:
-        """Get the current defrost mode.
-        Returns:
-            int: 0 (bypass), 1 (fanstop)
-        """
-        return self.get("A_CYC_DEFROST_MODE")
-
-    def get_defrost_mode(self) -> Optional[DefrostMode]:
+    def defrost_mode(self) -> Optional[DefrostMode]:
         """Get the current supply heating adjust mode.
         Returns:
             DefrostMode: 'Bypass'(0), 'Fanstop' (1)
         """
-        mode = self.defrost_mode
+        mode = self.get("A_CYC_DEFROST_MODE")
         if mode is None:
             return None
         return DefrostMode(mode)
-
-    def get_defrost_mode_name(self) -> Optional[str]:
-        """Get the current defrost mode as a string.
-        Returns:
-            str: 'Bypass', 'Fanstop'
-        """
-        mode = self.get_defrost_mode()
-        if mode == DefrostMode.BYPASS:
-            return "Bypass"
-        if mode == DefrostMode.FAN_STOP:
-            return "Fanstop"
-        return None
 
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
         """Get the temperature setting for the profile"""
@@ -604,19 +564,19 @@ class Vallox(Client):
         """Set the RH sensor mode to manual (1) or automatic (0)"""
         if mode < 0 or mode > 1:
             raise ValloxInvalidInputException("RH sensor control mode must be 0 (automatic) or 1 (manual)")
-        return self.set_values({SET_RH_SENSOR_CONTROL_MODE: mode})
+        await self.set_values({SET_RH_SENSOR_CONTROL_MODE: mode})
 
     async def set_rh_sensor_limit(self, percent: int) -> None:
         """Set the RH sensor limit (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
         if percent < 0 or percent > 100:
             raise ValloxInvalidInputException("RH sensor limit must be between 0 and 100")
-        return self.set_values({SET_RH_SENSOR_CONTROL_LIMIT: percent})
+        await self.set_values({SET_RH_SENSOR_CONTROL_LIMIT: percent})
 
     async def set_co2_sensor_limit(self, ppm: int) -> None:
         """Set the CO2 sensor ppm limit (500-2000)."""
         if ppm < 500 or ppm > 2000:
             raise ValloxInvalidInputException("CO2 sensor limit must be between 500 and 2000")
-        return self.set_values({SET_CO2_SENSOR_CONTROL_LIMIT: ppm})
+        await self.set_values({SET_CO2_SENSOR_CONTROL_LIMIT: ppm})
 
     async def set_supply_heating_adjust_mode(self, mode: SupplyHeatingAdjustMode) -> None:
         """Set the supply heating adjust mode.
