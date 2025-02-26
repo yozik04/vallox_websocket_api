@@ -349,9 +349,10 @@ class MetricData:
         return None
 
     @property
-    def rh_sensor_control_mode(self) -> Optional[int]:
+    def rh_sensor_manual_control_mode(self) -> Optional[bool]:
         """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
-        return self.get(SET_RH_SENSOR_CONTROL_MODE)
+        mode = self.get(SET_RH_SENSOR_CONTROL_MODE)
+        return bool(mode) if mode is not None else None
 
     @property
     def rh_sensor_limit(self) -> Optional[int]:
@@ -572,9 +573,9 @@ class Vallox(Client):
 
         await self.set_values({setting: enable})
 
-    async def set_rh_sensor_control_mode(self, mode: int) -> None:
-        """Set the RH sensor mode to manual (1) or automatic (0)"""
-        if mode < 0 or mode > 1:
+    async def set_rh_sensor_manual_control_mode(self, mode: int) -> None:
+        """Set the RH sensor control mode (0 for automatic, 1 for manual)"""
+        if mode not in (0, 1):
             raise ValloxInvalidInputException(
                 "RH sensor control mode must be 0 (automatic) or 1 (manual)"
             )

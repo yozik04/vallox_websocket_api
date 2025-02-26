@@ -72,15 +72,32 @@ async def test_set_co2_sensor_control_with_invalid_profile(vallox):
         await vallox.set_co2_sensor_control(Profile.EXTRA, True)
 
 
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        (True, 1),
+        (False, 0),
+        (1, 1),
+        (0, 0),
+    ],
+)
 @pytest.mark.asyncio
-async def test_set_sensor_control_mode_and_limits(vallox):
+async def test_set_sensor_control_mode(vallox, mode, expected):
     """Test setting sensor control modes and limits."""
     vallox.set_values = mock.AsyncMock()
 
-    # Test setting RH sensor mode
-    await vallox.set_rh_sensor_control_mode(1)  # Manual mode
-    vallox.set_values.assert_called_once_with({"A_CYC_RH_LEVEL_MODE": 1})
-    vallox.set_values.reset_mock()
+    await vallox.set_rh_sensor_manual_control_mode(mode)  # Manual mode
+    vallox.set_values.assert_called_once_with({"A_CYC_RH_LEVEL_MODE": expected})
+
+    # Test invalid RH sensor mode
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_rh_sensor_manual_control_mode(2)
+
+
+@pytest.mark.asyncio
+async def test_set_sensor_control_limits(vallox):
+    """Test setting sensor control modes and limits."""
+    vallox.set_values = mock.AsyncMock()
 
     # Test setting RH sensor limit
     await vallox.set_rh_sensor_limit(65)
@@ -91,10 +108,6 @@ async def test_set_sensor_control_mode_and_limits(vallox):
     await vallox.set_co2_sensor_limit(1000)
     vallox.set_values.assert_called_once_with({"A_CYC_CO2_THRESHOLD": 1000})
     vallox.set_values.reset_mock()
-
-    # Test invalid RH sensor mode
-    with pytest.raises(ValloxInvalidInputException):
-        await vallox.set_rh_sensor_control_mode(2)
 
     # Test invalid RH sensor limit
     with pytest.raises(ValloxInvalidInputException):
@@ -254,7 +267,10 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
     )
 
     # Test sensor modes and limits
-    assert data.rh_sensor_control_mode == metrics_response["A_CYC_RH_LEVEL_MODE"]
+    assert isinstance(data.rh_sensor_manual_control_mode, bool)
+    assert data.rh_sensor_manual_control_mode == bool(
+        metrics_response["A_CYC_RH_LEVEL_MODE"]
+    )
     assert data.rh_sensor_limit == metrics_response["A_CYC_RH_BASIC_LEVEL"]
     assert data.co2_sensor_limit == metrics_response["A_CYC_CO2_THRESHOLD"]
 
