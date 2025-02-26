@@ -254,9 +254,9 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
     )
 
     # Test sensor modes and limits
-    assert data.get_rh_sensor_control_mode() == metrics_response["A_CYC_RH_LEVEL_MODE"]
-    assert data.get_rh_sensor_limit() == metrics_response["A_CYC_RH_BASIC_LEVEL"]
-    assert data.get_co2_sensor_limit() == metrics_response["A_CYC_CO2_THRESHOLD"]
+    assert data.rh_sensor_control_mode == metrics_response["A_CYC_RH_LEVEL_MODE"]
+    assert data.rh_sensor_limit == metrics_response["A_CYC_RH_BASIC_LEVEL"]
+    assert data.co2_sensor_limit == metrics_response["A_CYC_CO2_THRESHOLD"]
 
     # Test supply heating adjust mode
     assert isinstance(data.supply_heating_adjust_mode, SupplyHeatingAdjustMode)

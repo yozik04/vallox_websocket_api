@@ -348,15 +348,18 @@ class MetricData:
             return self.get("A_CYC_EXTRA_TIMER")
         return None
 
-    def get_rh_sensor_control_mode(self) -> Optional[int]:
+    @property
+    def rh_sensor_control_mode(self) -> Optional[int]:
         """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
         return self.get(SET_RH_SENSOR_CONTROL_MODE)
 
-    def get_rh_sensor_limit(self) -> Optional[int]:
+    @property
+    def rh_sensor_limit(self) -> Optional[int]:
         """Return the RH sensor limit percentage (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
         return self.get(SET_RH_SENSOR_CONTROL_LIMIT)
 
-    def get_co2_sensor_limit(self) -> Optional[int]:
+    @property
+    def co2_sensor_limit(self) -> Optional[int]:
         """Return the CO2 sensor ppm limit (500-2000)."""
         return self.get(SET_CO2_SENSOR_CONTROL_LIMIT)
 
