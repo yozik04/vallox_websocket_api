@@ -7,12 +7,12 @@ from .exceptions import (
 )
 from .vallox import (
     Alarm,
+    CellState,
+    DefrostMode,
     MetricData,
     Profile,
-    Vallox,
-    CellState,
     SupplyHeatingAdjustMode,
-    DefrostMode
+    Vallox,
 )
 
 __all__ = [
