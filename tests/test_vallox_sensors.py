@@ -10,6 +10,7 @@ from vallox_websocket_api import (
     SupplyHeatingAdjustMode,
     ValloxInvalidInputException,
 )
+from vallox_websocket_api.vallox import CellState
 
 
 @pytest.mark.parametrize(
@@ -185,7 +186,6 @@ async def test_set_defrost_mode_with_invalid_mode(vallox):
             "A_CYC_RH_BASIC_LEVEL": 58,
             "A_CYC_CO2_THRESHOLD": 800,
             "A_CYC_SUPPLY_HEATING_ADJUST_MODE": 0,
-            "A_CYC_DEFROST_MODE": 0,
         },
         {
             "A_CYC_HOME_RH_CTRL_ENABLED": 0,
@@ -198,7 +198,6 @@ async def test_set_defrost_mode_with_invalid_mode(vallox):
             "A_CYC_RH_BASIC_LEVEL": 50,
             "A_CYC_CO2_THRESHOLD": 750,
             "A_CYC_SUPPLY_HEATING_ADJUST_MODE": 1,
-            "A_CYC_DEFROST_MODE": 1,
         },
         {
             "A_CYC_HOME_RH_CTRL_ENABLED": 0,
@@ -211,7 +210,6 @@ async def test_set_defrost_mode_with_invalid_mode(vallox):
             "A_CYC_RH_BASIC_LEVEL": 60,
             "A_CYC_CO2_THRESHOLD": 850,
             "A_CYC_SUPPLY_HEATING_ADJUST_MODE": 2,
-            "A_CYC_DEFROST_MODE": 1,
         },
         {
             "A_CYC_HOME_RH_CTRL_ENABLED": 1,
@@ -224,7 +222,6 @@ async def test_set_defrost_mode_with_invalid_mode(vallox):
             "A_CYC_RH_BASIC_LEVEL": 55,
             "A_CYC_CO2_THRESHOLD": 900,
             "A_CYC_SUPPLY_HEATING_ADJUST_MODE": 0,
-            "A_CYC_DEFROST_MODE": 0,
         },
     ],
 )
@@ -286,14 +283,6 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
         ).name
     )
 
-    # Test defrost mode
-    assert isinstance(data.defrost_mode, DefrostMode)
-    assert data.defrost_mode == DefrostMode(metrics_response["A_CYC_DEFROST_MODE"])
-    assert (
-        data.defrost_mode.name
-        == DefrostMode(metrics_response["A_CYC_DEFROST_MODE"]).name
-    )
-
     # Test valid profiles without specific RH and CO2 sensor control metrics
     with pytest.raises(ValloxInvalidInputException):
         data.get_rh_sensor_control(Profile.FIREPLACE)
@@ -303,5 +292,53 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
         data.get_co2_sensor_control(Profile.FIREPLACE)
     with pytest.raises(ValloxInvalidInputException):
         data.get_co2_sensor_control(Profile.EXTRA)
+
+    vallox.fetch_metrics.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "defrost_mode_value, expected_defrost_mode",
+    [
+        (0, DefrostMode.BYPASS),
+        (1, DefrostMode.FAN_STOP),
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_defrost_mode(vallox, defrost_mode_value, expected_defrost_mode):
+    """Test getting defrost mode."""
+    # Mock the metrics response
+    metrics_response = {"A_CYC_DEFROST_MODE": defrost_mode_value}
+    vallox.fetch_metrics = mock.AsyncMock(return_value=metrics_response)
+
+    data = await vallox.fetch_metric_data()
+
+    # Test defrost mode
+    assert isinstance(data.defrost_mode, DefrostMode)
+    assert data.defrost_mode == expected_defrost_mode
+
+    vallox.fetch_metrics.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "cell_state_value, expected_cell_state",
+    [
+        (0, CellState.HEAT_RECOVERY),
+        (1, CellState.COOL_RECOVERY),
+        (2, CellState.BYPASS),
+        (3, CellState.DEFROST),
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_cell_state(vallox, cell_state_value, expected_cell_state):
+    """Test getting cell state."""
+    # Mock the metrics response
+    metrics_response = {"A_CYC_CELL_STATE": cell_state_value}
+    vallox.fetch_metrics = mock.AsyncMock(return_value=metrics_response)
+
+    data = await vallox.fetch_metric_data()
+
+    # Test cell state
+    assert isinstance(data.cell_state, CellState)
+    assert data.cell_state == expected_cell_state
 
     vallox.fetch_metrics.assert_called_once()

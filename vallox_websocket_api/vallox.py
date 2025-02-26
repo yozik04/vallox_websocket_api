@@ -303,6 +303,18 @@ class MetricData:
         except ValueError:
             return None
 
+    @property
+    def cell_state(self) -> Optional[CellState]:
+        """Get the current cell state.
+        Returns:
+            CellState: 'Heat recovery'(0), 'Cool recovery' (1), 'Bypass' (2), or 'Defrost' (3)
+        """
+        state = self.get("A_CYC_CELL_STATE")
+        try:
+            return CellState(state)
+        except ValueError:
+            return None
+
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
         """Get the temperature setting for the profile"""
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
@@ -351,8 +363,8 @@ class MetricData:
     @property
     def rh_sensor_manual_control_mode(self) -> Optional[bool]:
         """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
-        mode = self.get(SET_RH_SENSOR_CONTROL_MODE)
-        return bool(mode) if mode is not None else None
+        enabled = self.get(SET_RH_SENSOR_CONTROL_MODE)
+        return bool(enabled) if enabled is not None else None
 
     @property
     def rh_sensor_limit(self) -> Optional[int]:
@@ -573,13 +585,13 @@ class Vallox(Client):
 
         await self.set_values({setting: enable})
 
-    async def set_rh_sensor_manual_control_mode(self, mode: int) -> None:
+    async def set_rh_sensor_manual_control_mode(self, enable: bool) -> None:
         """Set the RH sensor control mode (0 for automatic, 1 for manual)"""
-        if mode not in (0, 1):
+        if enable not in (0, 1):
             raise ValloxInvalidInputException(
                 "RH sensor control mode must be 0 (automatic) or 1 (manual)"
             )
-        await self.set_values({SET_RH_SENSOR_CONTROL_MODE: mode})
+        await self.set_values({SET_RH_SENSOR_CONTROL_MODE: enable})
 
     async def set_rh_sensor_limit(self, percent: int) -> None:
         """Set the RH sensor limit (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
