@@ -5,7 +5,15 @@ from .exceptions import (
     ValloxInvalidInputException,
     ValloxWebsocketException,
 )
-from .vallox import Alarm, MetricData, Profile, Vallox
+from .vallox import (
+    Alarm,
+    CellState,
+    DefrostMode,
+    MetricData,
+    Profile,
+    SupplyHeatingAdjustMode,
+    Vallox,
+)
 
 __all__ = [
     "Alarm",
@@ -18,6 +26,9 @@ __all__ = [
     "ValloxInvalidInputException",
     "ValloxApiException",
     "ValloxWebsocketException",
+    "CellState",
+    "SupplyHeatingAdjustMode",
+    "DefrostMode",
 ]
 
-__version__ = "5.3.0"
+__version__ = "5.3.1"
