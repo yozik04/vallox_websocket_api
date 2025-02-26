@@ -5,7 +5,11 @@ import pytest
 from vallox_websocket_api.data.model import DataModel
 
 js_folder = Path(__file__).parent / "js"
-js_files = [js_file.name for js_file in js_folder.glob("*.js")]
+js_files = [
+    js_file.name
+    for js_file in js_folder.glob("*.js")
+    if not js_file.name.startswith("_")
+]
 
 json_folder = Path(__file__).parent.parent.parent / "vallox_websocket_api" / "data"
 json_files = [json_file.name for json_file in json_folder.glob("*.json")]

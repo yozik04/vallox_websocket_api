@@ -1,12 +1,13 @@
 """Tests for Vallox WebSocket API sensor control functionality."""
+
 from unittest import mock
 
 import pytest
 
 from vallox_websocket_api import (
+    DefrostMode,
     Profile,
     SupplyHeatingAdjustMode,
-    DefrostMode,
     ValloxInvalidInputException,
 )
 
@@ -27,9 +28,14 @@ async def test_set_rh_sensor_control(vallox, profile, enabled):
     """Test setting RH sensor control."""
     vallox.set_values = mock.AsyncMock()
     await vallox.set_rh_sensor_control(profile, enabled)
-    vallox.set_values.assert_called_once_with({f"A_CYC_{profile.name}_RH_CTRL_ENABLED": enabled})
+    vallox.set_values.assert_called_once_with(
+        {f"A_CYC_{profile.name}_RH_CTRL_ENABLED": enabled}
+    )
 
-    # Test invalid profile
+
+@pytest.mark.asyncio
+async def test_set_rh_sensor_control_for_invalid_profile(vallox):
+    """Test setting RH sensor control with invalid profile."""
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_rh_sensor_control(Profile.FIREPLACE, True)
     with pytest.raises(ValloxInvalidInputException):
@@ -52,9 +58,14 @@ async def test_set_co2_sensor_control(vallox, profile, enabled):
     """Test setting CO2 sensor control."""
     vallox.set_values = mock.AsyncMock()
     await vallox.set_co2_sensor_control(profile, enabled)
-    vallox.set_values.assert_called_once_with({f"A_CYC_{profile.name}_CO2_CTRL_ENABLED": enabled})
+    vallox.set_values.assert_called_once_with(
+        {f"A_CYC_{profile.name}_CO2_CTRL_ENABLED": enabled}
+    )
 
-    # Test invalid profile
+
+@pytest.mark.asyncio
+async def test_set_co2_sensor_control_with_invalid_profile(vallox):
+    """Test setting CO2 sensor control with invalid profile."""
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_co2_sensor_control(Profile.FIREPLACE, True)
     with pytest.raises(ValloxInvalidInputException):
@@ -110,9 +121,14 @@ async def test_set_supply_heating_adjust_mode(vallox, adjust_mode):
     vallox.set_values = mock.AsyncMock()
 
     await vallox.set_supply_heating_adjust_mode(adjust_mode)
-    vallox.set_values.assert_called_once_with({"A_CYC_SUPPLY_HEATING_ADJUST_MODE": adjust_mode.value})
+    vallox.set_values.assert_called_once_with(
+        {"A_CYC_SUPPLY_HEATING_ADJUST_MODE": adjust_mode.value}
+    )
 
-    # Test invalid mode
+
+@pytest.mark.asyncio
+async def test_set_supply_heating_adjust_mode_with_invalid_mode(vallox):
+    """Test setting supply heating adjust mode with invalid mode."""
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_supply_heating_adjust_mode(5)
 
@@ -130,9 +146,14 @@ async def test_set_defrost_mode(vallox, defrost_mode):
     vallox.set_values = mock.AsyncMock()
 
     await vallox.set_defrost_mode(defrost_mode)
-    vallox.set_values.assert_called_once_with({"A_CYC_DEFROST_MODE": defrost_mode.value})
+    vallox.set_values.assert_called_once_with(
+        {"A_CYC_DEFROST_MODE": defrost_mode.value}
+    )
 
-    # Test invalid mode
+
+@pytest.mark.asyncio
+async def test_set_defrost_mode_with_invalid_mode(vallox):
+    """Test setting defrost mode with invalid mode."""
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_defrost_mode(5)
 
@@ -203,14 +224,34 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
     data = await vallox.fetch_metric_data()
 
     # Test RH sensor control status
-    assert data.get_rh_sensor_control(Profile.HOME) == metrics_response["A_CYC_HOME_RH_CTRL_ENABLED"]
-    assert data.get_rh_sensor_control(Profile.AWAY) == metrics_response["A_CYC_AWAY_RH_CTRL_ENABLED"]
-    assert data.get_rh_sensor_control(Profile.BOOST) == metrics_response["A_CYC_BOOST_RH_CTRL_ENABLED"]
+    assert isinstance(data.get_rh_sensor_control(Profile.HOME), bool)
+    assert (
+        data.get_rh_sensor_control(Profile.HOME)
+        == metrics_response["A_CYC_HOME_RH_CTRL_ENABLED"]
+    )
+    assert (
+        data.get_rh_sensor_control(Profile.AWAY)
+        == metrics_response["A_CYC_AWAY_RH_CTRL_ENABLED"]
+    )
+    assert (
+        data.get_rh_sensor_control(Profile.BOOST)
+        == metrics_response["A_CYC_BOOST_RH_CTRL_ENABLED"]
+    )
 
     # Test CO2 sensor control status
-    assert data.get_co2_sensor_control(Profile.HOME) == metrics_response["A_CYC_HOME_CO2_CTRL_ENABLED"]
-    assert data.get_co2_sensor_control(Profile.AWAY) == metrics_response["A_CYC_AWAY_CO2_CTRL_ENABLED"]
-    assert data.get_co2_sensor_control(Profile.BOOST) == metrics_response["A_CYC_BOOST_CO2_CTRL_ENABLED"]
+    assert isinstance(data.get_co2_sensor_control(Profile.HOME), bool)
+    assert (
+        data.get_co2_sensor_control(Profile.HOME)
+        == metrics_response["A_CYC_HOME_CO2_CTRL_ENABLED"]
+    )
+    assert (
+        data.get_co2_sensor_control(Profile.AWAY)
+        == metrics_response["A_CYC_AWAY_CO2_CTRL_ENABLED"]
+    )
+    assert (
+        data.get_co2_sensor_control(Profile.BOOST)
+        == metrics_response["A_CYC_BOOST_CO2_CTRL_ENABLED"]
+    )
 
     # Test sensor modes and limits
     assert data.get_rh_sensor_control_mode() == metrics_response["A_CYC_RH_LEVEL_MODE"]
@@ -218,12 +259,24 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
     assert data.get_co2_sensor_limit() == metrics_response["A_CYC_CO2_THRESHOLD"]
 
     # Test supply heating adjust mode
-    assert data.supply_heating_adjust_mode == SupplyHeatingAdjustMode(metrics_response["A_CYC_SUPPLY_HEATING_ADJUST_MODE"])
-    assert data.supply_heating_adjust_mode.name == SupplyHeatingAdjustMode(metrics_response["A_CYC_SUPPLY_HEATING_ADJUST_MODE"]).name
+    assert isinstance(data.supply_heating_adjust_mode, SupplyHeatingAdjustMode)
+    assert data.supply_heating_adjust_mode == SupplyHeatingAdjustMode(
+        metrics_response["A_CYC_SUPPLY_HEATING_ADJUST_MODE"]
+    )
+    assert (
+        data.supply_heating_adjust_mode.name
+        == SupplyHeatingAdjustMode(
+            metrics_response["A_CYC_SUPPLY_HEATING_ADJUST_MODE"]
+        ).name
+    )
 
     # Test defrost mode
+    assert isinstance(data.defrost_mode, DefrostMode)
     assert data.defrost_mode == DefrostMode(metrics_response["A_CYC_DEFROST_MODE"])
-    assert data.defrost_mode.name == DefrostMode(metrics_response["A_CYC_DEFROST_MODE"]).name
+    assert (
+        data.defrost_mode.name
+        == DefrostMode(metrics_response["A_CYC_DEFROST_MODE"]).name
+    )
 
     # Test valid profiles without specific RH and CO2 sensor control metrics
     with pytest.raises(ValloxInvalidInputException):
