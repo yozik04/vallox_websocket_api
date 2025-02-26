@@ -5,12 +5,12 @@ from unittest import mock
 import pytest
 
 from vallox_websocket_api import (
+    CellState,
     DefrostMode,
     Profile,
     SupplyHeatingAdjustMode,
     ValloxInvalidInputException,
 )
-from vallox_websocket_api.vallox import CellState
 
 
 @pytest.mark.parametrize(
