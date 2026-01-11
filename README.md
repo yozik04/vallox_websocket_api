@@ -26,7 +26,7 @@ Current code can:
 * Fetch and decode metrics
 * Fetch temperature logs
 
-Your ventilation unit should be connected to LAN.
+Your ventilation unit should be connected to LAN. Recommended firmware version is 2.0.0 or newer.
 
 Code will use websockets API that Valox's own web interface uses.
 
