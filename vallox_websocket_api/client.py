@@ -14,8 +14,9 @@ from websockets.exceptions import (
     ProtocolError,
 )
 
-from .data.model import DataModel, DataModelReadException
+from .data.model import DataModel
 from .exceptions import (
+    DataModelReadException,
     ValloxApiException,
     ValloxInvalidInputException,
     ValloxWebsocketException,
@@ -274,9 +275,16 @@ class Client:
             metric_keys = list(self.data_model.addresses.keys())
 
         for key in metric_keys:
-            value = data[
-                self.data_model.calculate_offset(self.data_model.addresses[key])
-            ]
+            offset = self.data_model.calculate_offset(self.data_model.addresses[key])
+
+            if offset is None:
+                continue
+
+            try:
+                value = data[offset]
+            except IndexError:
+                logger.warning(f"Offset {offset} for key {key} is out of range")
+                continue
 
             if self.is_temperature(key):
                 value = to_celsius(value)
