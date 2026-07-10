@@ -41,6 +41,8 @@ async def test_set_rh_sensor_control_for_invalid_profile(vallox):
         await vallox.set_rh_sensor_control(Profile.FIREPLACE, True)
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_rh_sensor_control(Profile.EXTRA, True)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_rh_sensor_control(Profile.AUTO, True)
 
 
 @pytest.mark.parametrize(
@@ -71,6 +73,8 @@ async def test_set_co2_sensor_control_with_invalid_profile(vallox):
         await vallox.set_co2_sensor_control(Profile.FIREPLACE, True)
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_co2_sensor_control(Profile.EXTRA, True)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_co2_sensor_control(Profile.AUTO, True)
 
 
 @pytest.mark.parametrize(
