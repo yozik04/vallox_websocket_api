@@ -240,14 +240,14 @@ class MetricData:
         """Get the current profile of the unit"""
         if self.get("A_CYC_BOOST_TIMER", 0) > 0:
             return Profile.BOOST
-        if self.get("A_CYC_FIREPLACE_TIMER", 0) > 0:
+        elif self.get("A_CYC_FIREPLACE_TIMER", 0) > 0:
             return Profile.FIREPLACE
-        if self.get("A_CYC_EXTRA_TIMER", 0) > 0:
+        elif self.get("A_CYC_EXTRA_TIMER", 0) > 0:
             return Profile.EXTRA
-        if self.get("A_CYC_STATE") == 1:
-            return Profile.AWAY
         elif self.get("A_CYC_STATE") == 0:
             return Profile.HOME
+        elif self.get("A_CYC_STATE") == 1:
+            return Profile.AWAY
         elif self.get("A_CYC_STATE") == 2:
             return Profile.AUTO
         return Profile.NONE
