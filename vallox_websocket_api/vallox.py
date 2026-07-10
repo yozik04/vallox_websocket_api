@@ -21,6 +21,7 @@ class Profile(IntEnum):
     BOOST = 3
     FIREPLACE = 4
     EXTRA = 5
+    AUTO = 6
 
 
 PROFILE_TO_SET_TEMPERATURE_METRIC_MAP = {
@@ -247,6 +248,8 @@ class MetricData:
             return Profile.AWAY
         elif self.get("A_CYC_STATE") == 0:
             return Profile.HOME
+        elif self.get("A_CYC_STATE") == 2:
+            return Profile.AUTO
         return Profile.NONE
 
     @property
@@ -506,6 +509,16 @@ class Vallox(Client):
             await self.set_values(
                 {
                     "A_CYC_STATE": 1,
+                    "A_CYC_BOOST_TIMER": 0,
+                    "A_CYC_FIREPLACE_TIMER": 0,
+                    "A_CYC_EXTRA_TIMER": 0,
+                }
+            )
+        elif profile == Profile.AUTO:
+            logger.info("Setting unit to AUTO profile")
+            await self.set_values(
+                {
+                    "A_CYC_STATE": 2,
                     "A_CYC_BOOST_TIMER": 0,
                     "A_CYC_FIREPLACE_TIMER": 0,
                     "A_CYC_EXTRA_TIMER": 0,

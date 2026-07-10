@@ -55,6 +55,16 @@ from vallox_websocket_api import Profile, Vallox
                 "A_CYC_EXTRA_TIMER": 30,
             },
         ),
+        (
+            Profile.AUTO,
+            None,
+            {
+                "A_CYC_STATE": 2,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+        ),
     ],
 )
 async def test_set_profile(vallox: Vallox, profile, fetch_metrics, expected_values):
@@ -154,6 +164,16 @@ async def test_set_profile(vallox: Vallox, profile, fetch_metrics, expected_valu
             },
             Profile.EXTRA,
             31,
+        ),
+        (
+            {
+                "A_CYC_STATE": 2,
+                "A_CYC_BOOST_TIMER": 0,
+                "A_CYC_FIREPLACE_TIMER": 0,
+                "A_CYC_EXTRA_TIMER": 0,
+            },
+            Profile.AUTO,
+            None,
         ),
     ],
 )

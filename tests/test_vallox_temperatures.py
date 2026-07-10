@@ -28,6 +28,10 @@ async def test_vallox_set_temperature(vallox, profile, metric, value):
 async def test_vallox_set_temperature_not_supported(vallox):
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_temperature(Profile.FIREPLACE, 19)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_temperature(Profile.EXTRA, 19)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_temperature(Profile.AUTO, 19)
 
 
 async def test_vallox_get_temperature(vallox):

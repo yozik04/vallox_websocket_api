@@ -34,6 +34,10 @@ async def test_set_fan_speed_boost(vallox: Vallox):
 async def test_set_fan_speed_wrong(vallox: Vallox):
     with pytest.raises(ValloxInvalidInputException):
         await vallox.set_fan_speed(Profile.FIREPLACE, 19)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_fan_speed(Profile.EXTRA, 19)
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_fan_speed(Profile.AUTO, 19)
 
 
 async def test_set_fan_speed_home_invalid_percentage(vallox: Vallox):
