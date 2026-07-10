@@ -165,6 +165,7 @@ async def run():
     profile = data.profile # RETURNS a Profile.* value
     await client.set_profile(Profile.HOME) # Permanently HOME profile
     await client.set_profile(Profile.AWAY) # Permanently AWAY profile
+    await client.set_profile(Profile.AUTO) # Permanently AUTO profile (requires firmware v3.1.4+)
     await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for configured timeout
     await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min
     await client.set_profile(Profile.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
