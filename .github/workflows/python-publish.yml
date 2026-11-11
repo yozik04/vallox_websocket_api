@@ -30,7 +30,7 @@ jobs:
         PUBLISHING_VERSION=${{ github.event.release.tag_name }}
         grep -qE '__version__ = "'$PUBLISHING_VERSION'"' vallox_websocket_api/__init__.py
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.x'
     - name: Install dependencies
