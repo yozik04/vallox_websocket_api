@@ -31,6 +31,12 @@ WEBSOCKETS_OPEN_TIMEOUT = 1
 WEBSOCKETS_RECV_TIMEOUT = 1
 WEBSOCKET_RETRY_DELAYS = [0.1, 0.2, 0.5, 1]
 
+# A profile timer of 0xFFFF (65535) means "no time limit", not "undefined",
+# so fetch_metrics() keeps it as it was written instead of mapping it to None.
+_PROFILE_TIMER_KEYS = frozenset(
+    {"A_CYC_BOOST_TIMER", "A_CYC_FIREPLACE_TIMER", "A_CYC_EXTRA_TIMER"}
+)
+
 MetricValue = Union[int, float, None]
 MetricDict = Dict[str, MetricValue]
 
@@ -288,7 +294,7 @@ class Client:
 
             if self.is_temperature(key):
                 value = to_celsius(value)
-            elif value == 0xFFFF:
+            elif value == 0xFFFF and key not in _PROFILE_TIMER_KEYS:
                 value = None
 
             metrics[key] = value

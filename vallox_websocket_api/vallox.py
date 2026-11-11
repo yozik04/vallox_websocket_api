@@ -354,14 +354,20 @@ class MetricData:
         return bool(value) if value is not None else None
 
     def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
-        """Get the remaining duration of the profile in minutes"""
+        """Get the remaining duration of the profile in minutes
+
+        Returns None for a profile without a timer, and for a timer of 65535,
+        which means that the profile runs without a time limit.
+        """
         if profile == Profile.BOOST:
-            return self.get("A_CYC_BOOST_TIMER")
-        if profile == Profile.FIREPLACE:
-            return self.get("A_CYC_FIREPLACE_TIMER")
-        if profile == Profile.EXTRA:
-            return self.get("A_CYC_EXTRA_TIMER")
-        return None
+            value = self.get("A_CYC_BOOST_TIMER")
+        elif profile == Profile.FIREPLACE:
+            value = self.get("A_CYC_FIREPLACE_TIMER")
+        elif profile == Profile.EXTRA:
+            value = self.get("A_CYC_EXTRA_TIMER")
+        else:
+            return None
+        return None if value == 65535 else value
 
     @property
     def rh_sensor_manual_control_mode(self) -> Optional[bool]:
@@ -476,7 +482,7 @@ class Vallox(Client):
 
         :params:
           :profile: One of Profile.* values
-          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles (None means default configured setting. 65535 means no time out)
+          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles (None or 0 means default configured setting. 65535 means no time out)
         """
         set_duration = None
         if duration is not None and 0 <= int(duration) <= 65535:
