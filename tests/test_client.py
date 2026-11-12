@@ -24,7 +24,15 @@ async def test_fetch_metric(client: Client, ws):
 
 
 @pytest.mark.parametrize(
-    "timer", ["A_CYC_BOOST_TIMER", "A_CYC_FIREPLACE_TIMER", "A_CYC_EXTRA_TIMER"]
+    "timer",
+    [
+        "A_CYC_BOOST_TIMER",
+        "A_CYC_FIREPLACE_TIMER",
+        "A_CYC_EXTRA_TIMER",
+        "A_CYC_BOOST_TIME",
+        "A_CYC_FIREPLACE_TIME",
+        "A_CYC_EXTRA_TIME",
+    ],
 )
 async def test_fetch_metric_timer_without_time_limit(
     client: Client, ws, raw_table, timer
@@ -35,7 +43,8 @@ async def test_fetch_metric_timer_without_time_limit(
 
     result = await client.fetch_metrics()
 
-    # 65535 means "no time limit" for a profile timer and reads back as written.
+    # 65535 means "no time limit" for a profile timer or stored duration, and
+    # reads back as written.
     assert result[timer] == 65535
     # For other registers 0xFFFF still means "undefined", e.g. an empty sensor slot.
     assert result["A_CYC_CO2_SENSOR_0"] is None
@@ -78,6 +87,22 @@ async def test_set_value(client: Client, ws):
     ws.send.assert_called_once_with(
         binascii.unhexlify("0a00f900011200000412000005120000061200001349")
     )
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "A_CYC_BOOST_TIMER_ENABLED",
+        "A_CYC_FIREPLACE_TIMER_ENABLED",
+        "A_CYC_EXTRA_TIMER_ENABLED",
+    ],
+)
+async def test_set_timer_switch(client: Client, ws, key):
+    await client.set_values({key: 0})
+
+    request = client.messages.write_request.parse(ws.send.call_args.args[0])
+    items = [(item.address, item.value) for item in request.fields.value["items"]]
+    assert items == [(client.data_model.addresses[key], 0)]
 
 
 @pytest.mark.parametrize(

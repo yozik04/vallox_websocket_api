@@ -48,6 +48,18 @@ PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP = {
     Profile.BOOST: "A_CYC_BOOST_CO2_CTRL_ENABLED",
 }
 
+PROFILE_TO_SET_DURATION_METRIC_MAP = {
+    Profile.BOOST: "A_CYC_BOOST_TIME",
+    Profile.FIREPLACE: "A_CYC_FIREPLACE_TIME",
+    Profile.EXTRA: "A_CYC_EXTRA_TIME",
+}
+
+PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP = {
+    Profile.BOOST: "A_CYC_BOOST_TIMER_ENABLED",
+    Profile.FIREPLACE: "A_CYC_FIREPLACE_TIMER_ENABLED",
+    Profile.EXTRA: "A_CYC_EXTRA_TIMER_ENABLED",
+}
+
 SET_RH_SENSOR_CONTROL_MODE = "A_CYC_RH_LEVEL_MODE"
 SET_RH_SENSOR_CONTROL_LIMIT = "A_CYC_RH_BASIC_LEVEL"
 SET_CO2_SENSOR_CONTROL_LIMIT = "A_CYC_CO2_THRESHOLD"
@@ -237,13 +249,18 @@ class MetricData:
 
     @property
     def profile(self) -> Profile:
-        """Get the current profile of the unit"""
-        if self.get("A_CYC_BOOST_TIMER", 0) > 0:
-            return Profile.BOOST
+        """Get the current profile of the unit
+
+        A timed profile is active while its timer isn't 0. If more than one is,
+        the unit uses the one with the highest priority: EXTRA, then FIREPLACE,
+        then BOOST.
+        """
+        if self.get("A_CYC_EXTRA_TIMER", 0) > 0:
+            return Profile.EXTRA
         elif self.get("A_CYC_FIREPLACE_TIMER", 0) > 0:
             return Profile.FIREPLACE
-        elif self.get("A_CYC_EXTRA_TIMER", 0) > 0:
-            return Profile.EXTRA
+        elif self.get("A_CYC_BOOST_TIMER", 0) > 0:
+            return Profile.BOOST
         elif self.get("A_CYC_STATE") == 0:
             return Profile.HOME
         elif self.get("A_CYC_STATE") == 1:
@@ -356,8 +373,9 @@ class MetricData:
     def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
         """Get the remaining duration of the profile in minutes
 
-        Returns None for a profile without a timer, and for a timer of 65535,
-        which means that the profile runs without a time limit.
+        Returns None for a profile without a timer, and for a running profile
+        without a time limit: its timer is 65535, or its timer switch is off,
+        so the timer doesn't count down.
         """
         if profile == Profile.BOOST:
             value = self.get("A_CYC_BOOST_TIMER")
@@ -367,7 +385,26 @@ class MetricData:
             value = self.get("A_CYC_EXTRA_TIMER")
         else:
             return None
-        return None if value == 65535 else value
+
+        if value == 65535:
+            return None
+
+        if value and self.get_timer_enabled(profile) is False:
+            return None
+
+        return value
+
+    def get_timer_enabled(self, profile: Profile) -> Optional[bool]:
+        """Return true if the timer switch of the profile is on, false otherwise
+
+        While the switch is off, the profile's timer doesn't count down.
+        Returns None for a profile without a timer.
+        """
+        if profile not in PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP:
+            return None
+
+        value = self.get(PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP[profile])
+        return bool(value) if value is not None else None
 
     @property
     def rh_sensor_manual_control_mode(self) -> Optional[bool]:
@@ -482,12 +519,13 @@ class Vallox(Client):
 
         :params:
           :profile: One of Profile.* values
-          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles (None or 0 means default configured setting. 65535 means no time out)
+          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles.
+            None or 0 means the duration configured on the unit, which only runs
+            out while the profile's timer switch is on.
+            65535 means no time out, regardless of the timer switch.
+            Any other duration also switches the profile's timer on, so that
+            the profile ends after that duration.
         """
-        set_duration = None
-        if duration is not None and 0 <= int(duration) <= 65535:
-            set_duration = int(duration)
-
         metric_data_cache = None
 
         async def lazy_fetch_metric_value(metric: str) -> int:
@@ -499,6 +537,27 @@ class Vallox(Client):
             if not isinstance(value, int):
                 raise ValloxInvalidInputException(f"Invalid value for metric {metric}")
             return value
+
+        # A timed profile runs for the given duration, or else for the one
+        # stored on the unit.
+        set_duration = None
+        if duration is not None and 0 <= int(duration) <= 65535:
+            set_duration = int(duration)
+        dur = 0
+        if profile in PROFILE_TO_SET_DURATION_METRIC_MAP:
+            dur = set_duration or await lazy_fetch_metric_value(
+                PROFILE_TO_SET_DURATION_METRIC_MAP[profile]
+            )
+
+        # The timer doesn't count down while its switch is off, so an explicit
+        # duration also switches it on, as in the Modbus manual's example.
+        timer_switch: Dict[str, int] = {}
+        if (
+            set_duration
+            and set_duration != 65535
+            and profile in PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP
+        ):
+            timer_switch = {PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP[profile]: 1}
 
         if profile == Profile.HOME:
             logger.info("Setting unit to HOME profile")
@@ -531,33 +590,33 @@ class Vallox(Client):
                 }
             )
         elif profile == Profile.FIREPLACE:
-            dur = set_duration or await lazy_fetch_metric_value("A_CYC_FIREPLACE_TIME")
             logger.info(f"Setting unit to FIREPLACE profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": 0,
                     "A_CYC_FIREPLACE_TIMER": dur,
                     "A_CYC_EXTRA_TIMER": 0,
+                    **timer_switch,
                 }
             )
         elif profile == Profile.BOOST:
-            dur = set_duration or await lazy_fetch_metric_value("A_CYC_BOOST_TIME")
             logger.info(f"Setting unit to BOOST profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": dur,
                     "A_CYC_FIREPLACE_TIMER": 0,
                     "A_CYC_EXTRA_TIMER": 0,
+                    **timer_switch,
                 }
             )
         elif profile == Profile.EXTRA:
-            dur = set_duration or await lazy_fetch_metric_value("A_CYC_EXTRA_TIME")
             logger.info(f"Setting unit to EXTRA profile for {dur} minutes")
             await self.set_values(
                 {
                     "A_CYC_BOOST_TIMER": 0,
                     "A_CYC_FIREPLACE_TIMER": 0,
                     "A_CYC_EXTRA_TIMER": dur,
+                    **timer_switch,
                 }
             )
 

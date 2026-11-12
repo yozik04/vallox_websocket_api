@@ -166,15 +166,23 @@ async def run():
     await client.set_profile(Profile.HOME) # Permanently HOME profile
     await client.set_profile(Profile.AWAY) # Permanently AWAY profile
     await client.set_profile(Profile.AUTO) # Permanently AUTO profile (requires firmware v3.1.4+)
-    await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for configured timeout
-    await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min
+    await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for the duration configured on the unit
+    await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min, switches its timer on
     await client.set_profile(Profile.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
-    await client.set_profile(Profile.EXTRA) # EXTRA mode for configured timeout
-    await client.set_profile(Profile.EXTRA, 120) # EXTRA mode for 120 min
+    await client.set_profile(Profile.EXTRA) # EXTRA mode for the duration configured on the unit
+    await client.set_profile(Profile.EXTRA, 120) # EXTRA mode for 120 min, switches its timer on
     await client.set_profile(Profile.EXTRA, 65535) # EXTRA mode, never TIMEOUT
 
 asyncio.run(run())
 ```
+
+BOOST, FIREPLACE and EXTRA are timed profiles. Each has a timer that counts down in minutes, and a timer switch on the unit, labelled "Timer" in the web UI. While the switch is off, the timer doesn't count down. The `duration` of `set_profile()` works like this:
+
+* `None` or 0: the duration configured on the unit. The profile only ends after it while the unit's timer switch is on. A configured duration of 65535 means no time limit.
+* 1 to 65534: the profile ends after that many minutes. This also switches the profile's timer on.
+* 65535: the profile runs without a time limit, regardless of the timer switch.
+
+If more than one timed profile is active, the unit uses EXTRA, then FIREPLACE, then BOOST, and `data.profile` reports the same. `data.get_timer_enabled(profile)` reads the timer switch. `data.get_remaining_profile_duration(profile)` returns `None` while the profile runs without a time limit.
 
 ## Metrics
 
@@ -1175,5 +1183,4 @@ Basically all that you can get via Modbus connection
  ```
 
 # Reading
-* https://www.vallox.com/files/1092/Modbus-instructions_ENG-250915.pdf
-* https://www.vallox.com/files/1092/Manual_Modbus_ENG_20180307_PRINT.pdf
+* https://res.cloudinary.com/vallox/image/upload/v1784527851/FileStock/ValidManuals/Manual_Modbus_ENG.pdf
