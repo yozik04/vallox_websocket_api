@@ -44,6 +44,18 @@ async def test_vallox_get_temperature(vallox):
     vallox.fetch_metrics.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "profile", [Profile.FIREPLACE, Profile.EXTRA, Profile.AUTO, Profile.NONE]
+)
+async def test_vallox_get_temperature_for_profile_without_setting(vallox, profile):
+    vallox.fetch_metrics = mock.AsyncMock(
+        return_value={"A_CYC_HOME_AIR_TEMP_TARGET": 19}
+    )
+
+    data = await vallox.fetch_metric_data()
+    assert data.get_temperature_setting(profile) is None
+
+
 async def test_vallox_fetch_metric(vallox, ws):
     """
     IoQueue.KItemTypeFetch = 3
