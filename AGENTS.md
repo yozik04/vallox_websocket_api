@@ -9,7 +9,8 @@ Run from the repository root; use an existing virtualenv or create one:
 
 ```sh
 python3 -m venv venv
-venv/bin/python -m pip install -e . pytest pytest-asyncio
+venv/bin/python -m pip install -U pip
+venv/bin/python -m pip install -e . --group test
 venv/bin/python -m pytest -q
 ```
 
@@ -45,9 +46,12 @@ Do not reformat unrelated files.
 - `tests/data/js/`: firmware reference bundles. Search specific constants rather
   than reading whole minified files. Preserve existing fixtures.
 - `README.md`: public API usage; `vallox_websocket_api/__init__.py`: exports.
-  `setup.cfg`: package metadata/runtime dependencies; `pyproject.toml`: build
-  backend and tool settings. Keep setuptools as a build requirement; do not
-  raise its minimum without a concrete build need.
+  `pyproject.toml`: the single source for package metadata, runtime
+  dependencies, the `test` dependency group, and tool settings (pytest, tox,
+  mypy, Black, isort, coverage); flake8 cannot read it, so its config is in
+  `.flake8`. Do not reintroduce `setup.cfg`, `setup.py`, `tox.ini`, or
+  `mypy.ini`. Keep setuptools as the build backend; do not raise its minimum
+  (currently 77, for SPDX `license`) without a concrete build need.
 
 ## Protocol and hardware guardrails
 
