@@ -287,15 +287,10 @@ async def test_get_sensor_controls_and_modes(vallox, metrics_response):
         ).name
     )
 
-    # Test valid profiles without specific RH and CO2 sensor control metrics
-    with pytest.raises(ValloxInvalidInputException):
-        data.get_rh_sensor_control(Profile.FIREPLACE)
-    with pytest.raises(ValloxInvalidInputException):
-        data.get_rh_sensor_control(Profile.EXTRA)
-    with pytest.raises(ValloxInvalidInputException):
-        data.get_co2_sensor_control(Profile.FIREPLACE)
-    with pytest.raises(ValloxInvalidInputException):
-        data.get_co2_sensor_control(Profile.EXTRA)
+    # Profiles without RH and CO2 sensor control settings return None
+    for profile in (Profile.FIREPLACE, Profile.EXTRA, Profile.AUTO, Profile.NONE):
+        assert data.get_rh_sensor_control(profile) is None
+        assert data.get_co2_sensor_control(profile) is None
 
     vallox.fetch_metrics.assert_called_once()
 

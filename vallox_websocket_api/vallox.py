@@ -321,37 +321,41 @@ class MetricData:
             return None
 
     def get_temperature_setting(self, profile: Profile) -> Optional[float]:
-        """Get the temperature setting for the profile"""
+        """Get the temperature setting for the profile
+
+        Returns None for a profile without a temperature setting.
+        """
         if profile not in PROFILE_TO_SET_TEMPERATURE_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"Temperature is not gettable for profile: {str(profile)}"
-            )
+            return None
         return self.get(PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile])
 
     def get_fan_speed(self, profile: Profile) -> Optional[int]:
-        """Get the fan speed for the profile"""
+        """Get the fan speed for the profile
+
+        Returns None for a profile without a fan speed setting.
+        """
         if profile not in PROFILE_TO_SET_FAN_SPEED_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"Fan speed is not gettable for profile: {str(profile)}"
-            )
+            return None
         value = self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
         return value if isinstance(value, int) else None
 
     def get_rh_sensor_control(self, profile: Profile) -> Optional[bool]:
-        """Return true if the RH sensor control is enabled for the profile, false otherwise"""
+        """Return true if the RH sensor control is enabled for the profile, false otherwise
+
+        Returns None for a profile without an RH sensor control setting.
+        """
         if profile not in PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"RH sensor control is not gettable for profile: {str(profile)}"
-            )
+            return None
         value = self.get(PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP[profile])
         return bool(value) if value is not None else None
 
     def get_co2_sensor_control(self, profile: Profile) -> Optional[bool]:
-        """Return true if the CO2 sensor control is enabled for the profile, false otherwise"""
+        """Return true if the CO2 sensor control is enabled for the profile, false otherwise
+
+        Returns None for a profile without a CO2 sensor control setting.
+        """
         if profile not in PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP:
-            raise ValloxInvalidInputException(
-                f"CO2 sensor control is not gettable for profile: {str(profile)}"
-            )
+            return None
         value = self.get(PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP[profile])
         return bool(value) if value is not None else None
 
