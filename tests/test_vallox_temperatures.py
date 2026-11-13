@@ -17,6 +17,8 @@ READ_TABLE_REPONSE = binascii.unhexlify(
         (Profile.HOME, "A_CYC_HOME_AIR_TEMP_TARGET", 19),
         (Profile.AWAY, "A_CYC_AWAY_AIR_TEMP_TARGET", 19),
         (Profile.BOOST, "A_CYC_BOOST_AIR_TEMP_TARGET", 19),
+        (Profile.FIREPLACE, "A_CYC_FIREPLACE_AIR_TEMP_TARGET", 19),
+        (Profile.EXTRA, "A_CYC_EXTRA_AIR_TEMP_TARGET", 19),
     ],
 )
 async def test_vallox_set_temperature(vallox, profile, metric, value):
@@ -27,11 +29,23 @@ async def test_vallox_set_temperature(vallox, profile, metric, value):
 
 async def test_vallox_set_temperature_not_supported(vallox):
     with pytest.raises(ValloxInvalidInputException):
-        await vallox.set_temperature(Profile.FIREPLACE, 19)
-    with pytest.raises(ValloxInvalidInputException):
-        await vallox.set_temperature(Profile.EXTRA, 19)
-    with pytest.raises(ValloxInvalidInputException):
         await vallox.set_temperature(Profile.AUTO, 19)
+
+
+@pytest.mark.parametrize("profile", [Profile.FIREPLACE, Profile.EXTRA])
+async def test_custom_profile_temperature_round_trip(vallox, ws, raw_table, profile):
+    metric = f"A_CYC_{profile.name}_AIR_TEMP_TARGET"
+    await vallox.set_temperature(profile, 19.5)
+
+    ws.send.assert_called_once()
+    request = vallox.messages.write_request.parse(ws.send.call_args.args[0])
+    assert [(item.address, item.value) for item in request.fields.value["items"]] == [
+        (vallox.data_model.addresses[metric], 29265)
+    ]
+
+    ws.recv.return_value = raw_table(vallox, {metric: 29265})
+    data = await vallox.fetch_metric_data()
+    assert data.get_temperature_setting(profile) == 19.5
 
 
 async def test_vallox_get_temperature(vallox):
@@ -42,6 +56,18 @@ async def test_vallox_get_temperature(vallox):
     data = await vallox.fetch_metric_data()
     assert data.get_temperature_setting(Profile.HOME) == 19
     vallox.fetch_metrics.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "profile", [Profile.FIREPLACE, Profile.EXTRA, Profile.AUTO, Profile.NONE]
+)
+async def test_vallox_get_temperature_for_profile_without_setting(vallox, profile):
+    vallox.fetch_metrics = mock.AsyncMock(
+        return_value={"A_CYC_HOME_AIR_TEMP_TARGET": 19}
+    )
+
+    data = await vallox.fetch_metric_data()
+    assert data.get_temperature_setting(profile) is None
 
 
 async def test_vallox_fetch_metric(vallox, ws):

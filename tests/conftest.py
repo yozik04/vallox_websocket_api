@@ -1,3 +1,4 @@
+from pathlib import Path
 import struct
 from typing import Dict
 from unittest.mock import AsyncMock, patch
@@ -6,6 +7,16 @@ import pytest
 from websockets.client import WebSocketClientProtocol
 
 from vallox_websocket_api import Client, Vallox
+
+JS_BUNDLE_FOLDER = Path(__file__).parent / "data" / "js"
+JS_BUNDLE_FILES = sorted(
+    path for path in JS_BUNDLE_FOLDER.glob("*.js") if not path.name.startswith("_")
+)
+
+
+@pytest.fixture(params=JS_BUNDLE_FILES, ids=lambda path: path.name)
+def js_bundle(request):
+    return request.param
 
 
 @pytest.fixture

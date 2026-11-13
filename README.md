@@ -184,6 +184,12 @@ BOOST, FIREPLACE and EXTRA are timed profiles. Each has a timer that counts down
 
 If more than one timed profile is active, the unit uses EXTRA, then FIREPLACE, then BOOST, and `data.profile` reports the same. `data.get_timer_enabled(profile)` reads the timer switch. `data.get_remaining_profile_duration(profile)` returns `None` while the profile runs without a time limit.
 
+`set_temperature()` and `MetricData.get_temperature_setting()` support HOME,
+AWAY, BOOST, FIREPLACE (called Custom in the Web UI), and EXTRA (the programmable
+digital-input mode). The fan-speed, humidity-control, and CO2-control helpers
+remain specific to HOME, AWAY, and BOOST: FIREPLACE and EXTRA have separate supply
+and extract fans, and AUTO has no independent profile settings.
+
 ## Metrics
 
 Reading metrics and setting values
@@ -246,7 +252,7 @@ asyncio.run(run())
 Textual values will be converted to integers before sending to the unit.
 ```python
 import asyncio
-from vallox_websocket_api import Vallox
+from vallox_websocket_api import Profile, Vallox
 
 client = Vallox('192.168.9.106')
 
@@ -282,13 +288,39 @@ async def run():
       'A_CYC_FIREPLACE_SUPP_FAN': 50
     })
 
+    await client.set_temperature(Profile.FIREPLACE, 18)
+
     # Setting Fireplace profile timer
     await client.set_values({
       'A_CYC_FIREPLACE_TIMER': 15, #Minutes
     })
 
+    # Setting programmable-input (EXTRA) profile settings
+    await client.set_values({
+      'A_CYC_EXTRA_EXTR_FAN': 30,
+      'A_CYC_EXTRA_SUPP_FAN': 50,
+      'A_CYC_EXTRA_AIR_TEMP_TARGET': 19,
+    })
+
+    # Configured defaults, not the currently running profile timers
+    await client.set_values({
+      'A_CYC_BOOST_TIME': 180, #Minutes
+      'A_CYC_BOOST_TIMER_ENABLED': 1,
+      'A_CYC_FIREPLACE_TIME': 15,
+      'A_CYC_FIREPLACE_TIMER_ENABLED': 1,
+      'A_CYC_EXTRA_TIME': 90,
+      'A_CYC_EXTRA_TIMER_ENABLED': 0,
+    })
+
 asyncio.run(run())
 ```
+
+On units supporting constant airflow, `set_values()` also accepts
+`A_CYC_CF_HOME_SUPPLY_BASE_AIRFLOW` and `A_CYC_CF_HOME_EXTRACT_BASE_AIRFLOW`,
+and the corresponding AWAY and BOOST registers. These use the unit's configured
+airflow unit; they are separate from the percentage-based `set_fan_speed()` API.
+Only registers present in the loaded firmware model can be written.
+Raw writes do not enforce the Web UI's value limits or cross-profile constraints.
 
 Not all addresses are settable.
 
