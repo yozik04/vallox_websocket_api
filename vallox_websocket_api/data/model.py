@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 import re
-from typing import Optional
 
 import aiohttp
 
@@ -24,8 +23,8 @@ class DataModel:
         r"(Vlx\w+).(\w+)\s*=\s*([\w.]+)\s*[,;]", re.IGNORECASE
     )
     _re_parse_number = re.compile(r"(\d+e?\d*)")
-    _constants: Optional[ConstantsDict] = None
-    _buffer_ranges: Optional[BufferRanges] = None
+    _constants: ConstantsDict | None = None
+    _buffer_ranges: BufferRanges | None = None
 
     @cached_property
     def addresses(self) -> dict:
@@ -152,7 +151,7 @@ class DataModel:
                 f"Failed to read local model {version}"
             ) from ex
 
-    def calculate_offset(self, aIndex: int) -> Optional[int]:
+    def calculate_offset(self, aIndex: int) -> int | None:
         """Map a Modbus address to its buffer index.
 
         The buffer contains data ranges packed sequentially. This method

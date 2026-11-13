@@ -1,8 +1,9 @@
 import asyncio
+from collections.abc import Callable
 from functools import wraps
 import logging
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 import websockets.client
 from websockets.exceptions import (
@@ -45,11 +46,11 @@ _NO_TIME_LIMIT_KEYS = frozenset(
     }
 )
 
-MetricValue = Union[int, float, None]
-MetricDict = Dict[str, MetricValue]
+MetricValue = int | float | None
+MetricDict = dict[str, MetricValue]
 
 
-def to_celsius(value: int) -> Union[float, None]:
+def to_celsius(value: int) -> float | None:
     if value == 0:
         return None
     return round(value / 100.0 - 273.15, 1)
@@ -69,7 +70,7 @@ def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
         ProtocolError,
         ConnectionClosed,
         OSError,
-        asyncio.TimeoutError,
+        TimeoutError,
     )
 
     @wraps(request_fn)
@@ -96,10 +97,11 @@ def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
             raise ValloxWebsocketException("Websocket protocol error") from ex
         except ConnectionClosed as ex:
             raise ValloxWebsocketException("Websocket connection closed") from ex
+        # TimeoutError subclasses OSError, so it must be handled first.
+        except TimeoutError as ex:
+            raise ValloxWebsocketException("Websocket connection timed out") from ex
         except OSError as ex:
             raise ValloxWebsocketException("Websocket connection failed") from ex
-        except asyncio.TimeoutError as ex:
-            raise ValloxWebsocketException("Websocket connection timed out") from ex
 
     return cast(FuncT, wrapped)
 
@@ -135,7 +137,7 @@ class Client:
         re.compile(r"^A_CYC_SUPPLY_AIR_DEFROST_TEMP$"),
     }
 
-    _settable_addresses: Dict[int, type]
+    _settable_addresses: dict[int, type]
 
     def __init__(self, ip_address: str):
         self.ip_address = ip_address
@@ -192,11 +194,11 @@ class Client:
             if any(r.match(k) for r in self.SETTABLE_INT_VALS)
         }
 
-    def get_settable_addresses(self) -> Dict[int, type]:
+    def get_settable_addresses(self) -> dict[int, type]:
         """Get settable addresses."""
         return self._settable_addresses
 
-    def set_settable_address(self, address: Union[int, str], var_type: type) -> None:
+    def set_settable_address(self, address: int | str, var_type: type) -> None:
         """Set settable address."""
         if var_type not in [int, float]:
             raise ValloxInvalidInputException("Only float or int types are supported")
@@ -228,8 +230,8 @@ class Client:
         return False
 
     def _encode_pair(
-        self, key: str, value: Union[int, float, str]
-    ) -> Tuple[int, Union[int, float]]:
+        self, key: str, value: int | float | str
+    ) -> tuple[int, int | float]:
         if key not in self.data_model.addresses:
             raise ValloxInvalidInputException(f"Unknown address {key}")
 
@@ -239,7 +241,7 @@ class Client:
 
         if self.is_temperature(key):
             value = to_kelvin(float(value))
-        raw_value: Union[int, float]
+        raw_value: int | float
         try:
             raw_value = int(value)
         except ValueError:
@@ -259,7 +261,7 @@ class Client:
     @_websocket_retry_wrapper
     async def _websocket_request_multiple(
         self, payload: bytes, read_packets: int
-    ) -> List[bytes]:
+    ) -> list[bytes]:
         async with websockets.client.connect(
             f"ws://{self.ip_address}/",
             open_timeout=WEBSOCKETS_OPEN_TIMEOUT,
@@ -267,16 +269,14 @@ class Client:
         ) as ws:
             await ws.send(payload)
 
-            async def _get_responses() -> List[bytes]:
+            async def _get_responses() -> list[bytes]:
                 return [await ws.recv() for _ in range(0, read_packets)]
 
             return await asyncio.wait_for(
                 _get_responses(), timeout=WEBSOCKETS_RECV_TIMEOUT * read_packets
             )
 
-    async def fetch_metrics(
-        self, metric_keys: Optional[List[str]] = None
-    ) -> MetricDict:
+    async def fetch_metrics(self, metric_keys: list[str] | None = None) -> MetricDict:
         """Fetch metrics."""
         await self.load_data_model()
 
@@ -310,7 +310,7 @@ class Client:
 
         return metrics
 
-    async def fetch_raw_logs(self) -> List[List[Dict[str, Union[int, float]]]]:
+    async def fetch_raw_logs(self) -> list[list[dict[str, int | float]]]:
         """Fetch raw logs."""
         await self.load_data_model()
 
@@ -351,7 +351,7 @@ class Client:
 
         return series
 
-    async def set_values(self, dict_: Dict[str, Union[int, float, str]]) -> None:
+    async def set_values(self, dict_: dict[str, int | float | str]) -> None:
         """Set values."""
         await self.load_data_model()
 

@@ -1,4 +1,3 @@
-import asyncio
 import binascii
 from unittest.mock import AsyncMock, patch
 
@@ -226,7 +225,7 @@ async def test_connection_closed_ws_exception(client: Client, ws):
 
 
 async def test_ws_recv_timeout_exception(client: Client, ws):
-    ws.recv.side_effect = AsyncMock(side_effect=asyncio.TimeoutError())
+    ws.recv.side_effect = AsyncMock(side_effect=TimeoutError())
 
     with pytest.raises(ValloxWebsocketException):
         await client.fetch_metrics()
@@ -246,9 +245,9 @@ async def test_invalid_ws_url_exception(client: Client):
 
 async def test_ws_connection_timeout_exception(client: Client):
     with patch("websockets.client.connect") as connect:
-        connect.side_effect = asyncio.TimeoutError()
+        connect.side_effect = TimeoutError()
 
-        with pytest.raises(ValloxWebsocketException):
+        with pytest.raises(ValloxWebsocketException, match="timed out"):
             await client.fetch_metrics()
 
         assert connect.call_count == 5

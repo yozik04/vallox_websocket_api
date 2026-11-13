@@ -1,5 +1,4 @@
 import logging
-from typing import List, Optional
 
 from vallox_websocket_api.data.constants import ConstantsDict
 from vallox_websocket_api.exceptions import DataModelReadException
@@ -27,7 +26,7 @@ class BufferRange:
         """Check if an address is within this range."""
         return self.range_start <= address <= self.range_end
 
-    def calculate_offset(self, address: int) -> Optional[int]:
+    def calculate_offset(self, address: int) -> int | None:
         """Calculate buffer offset for an address within this range."""
         if not self.contains(address):
             return None
@@ -37,11 +36,11 @@ class BufferRange:
 class BufferRanges:
     """Manages collection of buffer ranges for efficient address-to-offset mapping."""
 
-    def __init__(self, ranges: List[BufferRange]):
+    def __init__(self, ranges: list[BufferRange]):
         # Sort by range_start for efficient lookup
         self._ranges = sorted(ranges, key=lambda r: r.range_start)
 
-    def calculate_offset(self, address: int) -> Optional[int]:
+    def calculate_offset(self, address: int) -> int | None:
         """Map a Modbus address to its buffer index.
 
         Args:
