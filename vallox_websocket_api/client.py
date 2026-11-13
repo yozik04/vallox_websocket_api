@@ -102,10 +102,11 @@ class Client:
     SETTABLE_INT_VALS = {
         re.compile(r"^A_CYC_MODE$"),
         re.compile(r"^A_CYC_STATE$"),
-        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST|EXTRA)_AIR_TEMP_TARGET$"),
+        re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST|FIREPLACE|EXTRA)_AIR_TEMP_TARGET$"),
         re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST)_SPEED_SETTING$"),
-        re.compile(r"^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_TIMER$"),
+        re.compile(r"^A_CYC_(?:BOOST|FIREPLACE|EXTRA)_(?:TIME|TIMER|TIMER_ENABLED)$"),
         re.compile(r"^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$"),
+        re.compile(r"^A_CYC_CF_(?:HOME|AWAY|BOOST)_(?:SUPPLY|EXTRACT)_BASE_AIRFLOW$"),
         re.compile(r"^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
         re.compile(
             r"^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
