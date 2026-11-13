@@ -1,5 +1,5 @@
 import binascii
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from websockets.exceptions import ConnectionClosed, InvalidMessage, InvalidURI
@@ -9,6 +9,7 @@ from vallox_websocket_api import (
     ValloxInvalidInputException,
     ValloxWebsocketException,
 )
+from vallox_websocket_api.exceptions import DataModelReadException
 
 
 @pytest.fixture
@@ -17,6 +18,37 @@ async def client_from_js(js_bundle):
     await client.data_model.read_model_from_js_file(js_bundle)
     client._on_model_loaded()
     return client
+
+
+async def test_load_data_model_from_second_unit_bundle(client: Client):
+    with patch.object(
+        client.data_model,
+        "read_model_from_unit",
+        side_effect=[DataModelReadException("first bundle unavailable"), None],
+    ) as read:
+        assert await client.load_data_model_from_unit()
+
+    assert read.await_args_list == [
+        call("http://127.0.0.1/js/bundle.js"),
+        call("http://127.0.0.1/js/vallox.js"),
+    ]
+
+
+async def test_load_bundled_model_after_both_unit_bundles_fail():
+    client = Client("127.0.0.1")
+    with patch.object(
+        client.data_model,
+        "read_model_from_unit",
+        side_effect=DataModelReadException("unit unavailable"),
+    ) as read:
+        await client.load_data_model()
+
+    assert read.await_args_list == [
+        call("http://127.0.0.1/js/bundle.js"),
+        call("http://127.0.0.1/js/vallox.js"),
+    ]
+    assert client.data_model.is_valid
+    assert client.data_model.addresses["A_CYC_STATE"] in client.get_settable_addresses()
 
 
 async def test_set_profile_configuration_from_js(client_from_js, ws):
@@ -169,6 +201,7 @@ async def test_set_timer_switch(client: Client, ws, key):
         ({"A_CYC_BOOST_AIR_TEMP_TARGET": "11.a"}),
         ({"A_CYC_BOOST_SPEED_SETTING": "11.2"}),
         ({"A_CYC_FIREPLACE_SUPP_FAN": "11.2"}),
+        ({"A_CYC_STATE": None}),
     ],
 )
 async def test_set_invalid(client: Client, ws, values):
@@ -189,6 +222,35 @@ async def test_set_unsettable(client: Client, ws):
     with pytest.raises(ValloxInvalidInputException):
         await client.set_values({"A_CYC_RH_VALUE": 22})
 
+    ws.send.assert_not_called()
+
+
+async def test_settable_register_names_must_match_entirely(client: Client, ws):
+    invalid = [
+        "A_CYC_FILTER_CHANGED_DAY_EXTRA",
+        "A_CYC_MODE\n",
+    ]
+    client.data_model.addresses.update(
+        {key: 60000 + index for index, key in enumerate(invalid)}
+    )
+    client._on_model_loaded()
+
+    valid = [
+        "A_CYC_FILTER_CHANGED_DAY",
+        "A_CYC_FILTER_CHANGED_MONTH",
+        "A_CYC_FILTER_CHANGED_YEAR",
+        "A_CYC_FILTER_CHANGE_INTERVAL",
+    ]
+    await client.set_values({key: 1 for key in valid})
+    request = client.messages.write_request.parse(ws.send.call_args.args[0])
+    assert {item.address for item in request.fields.value["items"]} == {
+        client.data_model.addresses[key] for key in valid
+    }
+
+    ws.send.reset_mock()
+    for key in invalid:
+        with pytest.raises(ValloxInvalidInputException):
+            await client.set_values({key: 1})
     ws.send.assert_not_called()
 
 
@@ -234,7 +296,7 @@ async def test_ws_recv_timeout_exception(client: Client, ws):
 
 
 async def test_invalid_ws_url_exception(client: Client):
-    with patch("websockets.client.connect") as connect:
+    with patch("vallox_websocket_api.client.websocket_connect") as connect:
         connect.side_effect = InvalidURI("test", "test")
 
         with pytest.raises(ValloxWebsocketException):
@@ -244,10 +306,21 @@ async def test_invalid_ws_url_exception(client: Client):
 
 
 async def test_ws_connection_timeout_exception(client: Client):
-    with patch("websockets.client.connect") as connect:
+    with patch("vallox_websocket_api.client.websocket_connect") as connect:
         connect.side_effect = TimeoutError()
 
         with pytest.raises(ValloxWebsocketException, match="timed out"):
             await client.fetch_metrics()
 
         assert connect.call_count == 5
+
+
+async def test_websocket_retry_succeeds_after_transient_errors(client: Client, ws):
+    ws.recv.side_effect = [OSError("disconnected"), TimeoutError(), b"response"]
+    with patch(
+        "vallox_websocket_api.client.asyncio.sleep", new_callable=AsyncMock
+    ) as sleep:
+        assert await client._websocket_request(b"request") == b"response"
+
+    assert ws.send.await_args_list == [call(b"request")] * 3
+    assert sleep.await_args_list == [call(0.1), call(0.2)]

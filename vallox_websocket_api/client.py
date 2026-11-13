@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Any, TypeVar, cast
 
-import websockets.client
+from websockets.asyncio.client import connect as websocket_connect
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
@@ -76,15 +76,12 @@ def _websocket_retry_wrapper(request_fn: FuncT) -> FuncT:
     @wraps(request_fn)
     async def wrapped(*args: Any, **kwargs: Any) -> Any:
         try:
-            delays = WEBSOCKET_RETRY_DELAYS.copy()
-            while len(delays) >= 0:
+            for delay in WEBSOCKET_RETRY_DELAYS.copy():
                 try:
                     return await request_fn(*args, **kwargs)
-                except Exception as ex:
-                    if isinstance(ex, retry_on_exceptions) and len(delays) > 0:
-                        await asyncio.sleep(delays.pop(0))
-                    else:
-                        raise ex
+                except retry_on_exceptions:
+                    await asyncio.sleep(delay)
+            return await request_fn(*args, **kwargs)
         except InvalidHandshake as ex:
             raise ValloxWebsocketException("Websocket handshake failed") from ex
         except InvalidURI as ex:
@@ -118,9 +115,7 @@ class Client:
         re.compile(r"^A_CYC_(?:FIREPLACE|EXTRA)_(?:EXTR|SUPP)_FAN$"),
         re.compile(r"^A_CYC_CF_(?:HOME|AWAY|BOOST)_(?:SUPPLY|EXTRACT)_BASE_AIRFLOW$"),
         re.compile(r"^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
-        re.compile(
-            r"^A_CYC_FILTER_CHANGED_(?:DAY|MONTH|YEAR)|A_CYC_FILTER_CHANGE_INTERVAL$"
-        ),
+        re.compile(r"^A_CYC_FILTER_(?:CHANGED_(?:DAY|MONTH|YEAR)|CHANGE_INTERVAL)$"),
         re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
         re.compile(r"^A_CYC_BYPASS_LOCKED$"),
         re.compile(r"^A_CYC_.*_SETPOINT$"),
@@ -173,7 +168,6 @@ class Client:
                 return True
             except DataModelReadException as ex:
                 logger.warning(f"Failed to load data model from {url}: {ex}")
-                return False
 
         return False
 
@@ -191,7 +185,7 @@ class Client:
         self._settable_addresses = {
             v: int
             for k, v in self.data_model.addresses.items()
-            if any(r.match(k) for r in self.SETTABLE_INT_VALS)
+            if any(r.fullmatch(k) for r in self.SETTABLE_INT_VALS)
         }
 
     def get_settable_addresses(self) -> dict[int, type]:
@@ -237,7 +231,8 @@ class Client:
 
         address = int(self.data_model.addresses[key])
         addresses = self.get_settable_addresses()
-        assert address in addresses, f"{key} setting is not settable"
+        if address not in addresses:
+            raise ValueError(f"{key} setting is not settable")
 
         if self.is_temperature(key):
             value = to_kelvin(float(value))
@@ -249,28 +244,31 @@ class Client:
 
         required_type = addresses[address]
 
-        assert isinstance(
-            raw_value, required_type
-        ), f"{key}({address}) key needs to be an {required_type.__name__}, but {type(raw_value).__name__} passed"
+        if not isinstance(raw_value, required_type):
+            raise ValueError(
+                f"{key}({address}) key needs to be an {required_type.__name__}, "
+                f"but {type(raw_value).__name__} passed"
+            )
 
         return address, raw_value
 
-    async def _websocket_request(self, payload: bytes) -> bytes:
+    async def _websocket_request(self, payload: bytes) -> bytes | str:
         return (await self._websocket_request_multiple(payload, 1))[0]
 
     @_websocket_retry_wrapper
     async def _websocket_request_multiple(
         self, payload: bytes, read_packets: int
-    ) -> list[bytes]:
-        async with websockets.client.connect(
+    ) -> list[bytes | str]:
+        async with websocket_connect(
             f"ws://{self.ip_address}/",
             open_timeout=WEBSOCKETS_OPEN_TIMEOUT,
+            proxy=None,  # Keep local device connections off system proxies.
             logger=logger,
         ) as ws:
             await ws.send(payload)
 
-            async def _get_responses() -> list[bytes]:
-                return [await ws.recv() for _ in range(0, read_packets)]
+            async def _get_responses() -> list[bytes | str]:
+                return [await ws.recv() for _ in range(read_packets)]
 
             return await asyncio.wait_for(
                 _get_responses(), timeout=WEBSOCKETS_RECV_TIMEOUT * read_packets
@@ -358,10 +356,11 @@ class Client:
         items = []
         for key, value in dict_.items():
             try:
-                assert value is not None, "Value cannot be None"
+                if value is None:
+                    raise ValueError("Value cannot be None")
                 address, raw_value = self._encode_pair(key, value)
                 items.append({"address": address, "value": raw_value})
-            except (ValueError, AssertionError) as ex:
+            except ValueError as ex:
                 raise ValloxInvalidInputException(f"Unable to encode {key}") from ex
 
         items.sort(key=lambda x: x["address"])
