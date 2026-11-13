@@ -117,6 +117,7 @@ class Client:
         re.compile(r"^A_CYC_(?:EXTR|SUPP)_FAN_BALANCE_BASE$"),
         re.compile(r"^A_CYC_FILTER_(?:CHANGED_(?:DAY|MONTH|YEAR)|CHANGE_INTERVAL)$"),
         re.compile(r"^A_CYC_FAULT_ACTIVITY(?:_\d{1,2})?$"),
+        re.compile(r"^A_CYC_(?:MINUTE|HOUR|DAY|MONTH|YEAR)$"),
         re.compile(r"^A_CYC_BYPASS_LOCKED$"),
         re.compile(r"^A_CYC_.*_SETPOINT$"),
         re.compile(r"^A_CYC_(?:HOME|AWAY|BOOST)_RH_CTRL_ENABLED$"),
