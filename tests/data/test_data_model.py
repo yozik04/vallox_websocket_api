@@ -4,13 +4,6 @@ import pytest
 
 from vallox_websocket_api.data.model import DataModel
 
-js_folder = Path(__file__).parent / "js"
-js_files = [
-    js_file.name
-    for js_file in js_folder.glob("*.js")
-    if not js_file.name.startswith("_")
-]
-
 json_folder = Path(__file__).parent.parent.parent / "vallox_websocket_api" / "data"
 json_files = [json_file.name for json_file in json_folder.glob("*.json")]
 
@@ -21,10 +14,9 @@ def data_model():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("js_file", js_files)
-async def test_read_model_from_js_file(data_model, js_file):
+async def test_read_model_from_js_file(data_model, js_bundle):
     # Test reading model from js file
-    await data_model.read_model_from_js_file(js_folder / js_file)
+    await data_model.read_model_from_js_file(js_bundle)
     assert data_model.is_valid
 
 
