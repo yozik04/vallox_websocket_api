@@ -166,15 +166,17 @@ async def run():
     await client.set_profile(Profile.HOME) # Permanently HOME profile
     await client.set_profile(Profile.AWAY) # Permanently AWAY profile
     await client.set_profile(Profile.AUTO) # Permanently AUTO profile (requires firmware v3.1.4+)
-    await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for configured timeout
-    await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min
+    await client.set_profile(Profile.FIREPLACE) # FIREPLACE mode for the duration configured on the unit
+    await client.set_profile(Profile.FIREPLACE, 120) # FIREPLACE mode for 120 min, switches its timer on
     await client.set_profile(Profile.FIREPLACE, 65535) # FIREPLACE mode, never TIMEOUT
-    await client.set_profile(Profile.EXTRA) # EXTRA mode for configured timeout
-    await client.set_profile(Profile.EXTRA, 120) # EXTRA mode for 120 min
+    await client.set_profile(Profile.EXTRA) # EXTRA mode for the duration configured on the unit
+    await client.set_profile(Profile.EXTRA, 120) # EXTRA mode for 120 min, switches its timer on
     await client.set_profile(Profile.EXTRA, 65535) # EXTRA mode, never TIMEOUT
 
 asyncio.run(run())
 ```
+
+BOOST, FIREPLACE and EXTRA are timed profiles. `set_profile(profile, duration)` uses the unit's configured duration for `None` or 0, enables the timer for 1-65534 minutes, and runs indefinitely for 65535 without changing the timer switch. The configured duration counts down only while the switch is on. If multiple timed profiles are active, priority is EXTRA, FIREPLACE, then BOOST. Read the switch with `data.get_timer_enabled(profile)`; `data.get_remaining_profile_duration(profile)` returns `None` for a running profile with the timer disabled or unlimited.
 
 `set_temperature()` and `MetricData.get_temperature_setting()` support HOME,
 AWAY, BOOST, FIREPLACE (called Custom in the Web UI), and EXTRA (the programmable
@@ -1207,5 +1209,4 @@ Basically all that you can get via Modbus connection
  ```
 
 # Reading
-* https://www.vallox.com/files/1092/Modbus-instructions_ENG-250915.pdf
-* https://www.vallox.com/files/1092/Manual_Modbus_ENG_20180307_PRINT.pdf
+* https://res.cloudinary.com/vallox/image/upload/v1784527851/FileStock/ValidManuals/Manual_Modbus_ENG.pdf
