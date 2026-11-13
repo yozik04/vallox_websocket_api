@@ -184,6 +184,21 @@ digital-input mode). The fan-speed, humidity-control, and CO2-control helpers
 remain specific to HOME, AWAY, and BOOST: FIREPLACE and EXTRA have separate supply
 and extract fans, and AUTO has no independent profile settings.
 
+### Timer settings
+
+Each timed profile has two settings, shown as "Timer" and "Duration" in the web UI. "Timer" is the timer switch. "Duration" is the value that `set_profile(profile)` without a duration, and the web UI, load into the profile's timer:
+
+```python
+async def run():
+    data = await client.fetch_metric_data()
+    data.get_timer_enabled(Profile.BOOST) # True if the timer switch is on
+    data.get_timer_duration(Profile.BOOST) # Duration setting in minutes
+    await client.set_timer_enabled(Profile.BOOST, False) # Timer off: once started, BOOST runs until another profile is selected
+    await client.set_timer_duration(Profile.BOOST, 45) # Duration setting: 45 min, used when BOOST is started without a duration
+```
+
+`set_timer_duration()` accepts 1 to 65535 minutes, like the web UI's duration field (up to 1092:15). The getters return `None` for profiles without a timer, and the setters raise `ValloxInvalidInputException` for them.
+
 ## Metrics
 
 Reading metrics and setting values
