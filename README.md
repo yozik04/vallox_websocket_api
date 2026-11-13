@@ -153,6 +153,10 @@ Code uses next libraries
 
 Changing unit profile and reading metrics
 
+When no data model is loaded, the client tries the unit's `js/bundle.js`, then
+`js/vallox.js`. If neither can be loaded, it falls back to the bundled 2.0.16
+model.
+
 ## Profile control:
 
 ```python
