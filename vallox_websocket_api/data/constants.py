@@ -1,5 +1,3 @@
-from typing import Dict
-
 ALARM_MESSAGES = [
     {"key": None, "text": "No error"},
     {"key": "alarm_extract_stop", "text": "Extract air fan "},
@@ -29,4 +27,4 @@ ALARM_MESSAGES = [
 ]
 
 
-ConstantsDict = Dict[str, Dict[str, int]]
+ConstantsDict = dict[str, dict[str, int]]

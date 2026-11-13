@@ -3,7 +3,6 @@ import datetime
 from datetime import date, timedelta
 from enum import Enum, IntEnum
 import logging
-from typing import Dict, Optional, Union
 from uuid import UUID
 
 from vallox_websocket_api.exceptions import ValloxInvalidInputException
@@ -185,7 +184,7 @@ def _swap16(val: int) -> int:
     return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
 
 
-def _get_alarm_date(raw: Optional[int]) -> Optional[date]:
+def _get_alarm_date(raw: int | None) -> date | None:
     if raw is None:
         return None
 
@@ -204,7 +203,7 @@ class MetricData:
     def __repr__(self):
         return f'MetricData(model="{self.model}",uuid="{self.uuid}",sw_version="{self.sw_version}",...,data={self._data})'
 
-    def get(self, key: str, default: Optional[MetricValue] = None) -> MetricValue:
+    def get(self, key: str, default: MetricValue | None = None) -> MetricValue:
         """Get data by key with optional default value"""
         data = self._data.get(key)
         return data if data is not None else default
@@ -214,7 +213,7 @@ class MetricData:
         return self._data.items()
 
     @property
-    def model(self) -> Optional[str]:
+    def model(self) -> str | None:
         """Get the model of the unit"""
         model_index = self.get("A_CYC_MACHINE_MODEL")
         if isinstance(model_index, int) and model_index < len(DEVICE_MODEL):
@@ -223,7 +222,7 @@ class MetricData:
         return None
 
     @property
-    def sw_version(self) -> Optional[str]:
+    def sw_version(self) -> str | None:
         """Get the software version of the unit"""
         try:
             return ".".join(
@@ -241,7 +240,7 @@ class MetricData:
         return UUID(hex_string)
 
     @property
-    def info(self) -> Dict[str, Union[str, UUID, None]]:
+    def info(self) -> dict[str, str | UUID | None]:
         """Get the unit info as a dictionary"""
         return {
             "model": self.model,
@@ -272,7 +271,7 @@ class MetricData:
         return Profile.NONE
 
     @property
-    def filter_change_date(self) -> Optional[date]:
+    def filter_change_date(self) -> date | None:
         """Get the last filter change date"""
         keys = [
             "A_CYC_FILTER_CHANGED_YEAR",
@@ -291,7 +290,7 @@ class MetricData:
         return date(last_change_year, last_change_month, last_change_day)
 
     @property
-    def next_filter_change_date(self) -> Optional[date]:
+    def next_filter_change_date(self) -> date | None:
         """Get the next filter change date based on the interval and last change date"""
         filter_change_date = self.filter_change_date
         interval = self.get("A_CYC_FILTER_CHANGE_INTERVAL")
@@ -302,7 +301,7 @@ class MetricData:
         return filter_change_date + timedelta(days=int(interval))
 
     @property
-    def supply_heating_adjust_mode(self) -> Optional[SupplyHeatingAdjustMode]:
+    def supply_heating_adjust_mode(self) -> SupplyHeatingAdjustMode | None:
         """Get the current supply heating adjust mode.
         Returns:
             SupplyHeatingAdjustMode: 'Supply'(0), 'Extract' (1), or 'Cooling' (2)
@@ -314,7 +313,7 @@ class MetricData:
             return None
 
     @property
-    def defrost_mode(self) -> Optional[DefrostMode]:
+    def defrost_mode(self) -> DefrostMode | None:
         """Get the current supply heating adjust mode.
         Returns:
             DefrostMode: 'Bypass'(0), 'Fanstop' (1)
@@ -326,7 +325,7 @@ class MetricData:
             return None
 
     @property
-    def cell_state(self) -> Optional[CellState]:
+    def cell_state(self) -> CellState | None:
         """Get the current cell state.
         Returns:
             CellState: 'Heat recovery'(0), 'Cool recovery' (1), 'Bypass' (2), or 'Defrost' (3)
@@ -337,7 +336,7 @@ class MetricData:
         except ValueError:
             return None
 
-    def get_temperature_setting(self, profile: Profile) -> Optional[float]:
+    def get_temperature_setting(self, profile: Profile) -> float | None:
         """Get the temperature setting for the profile
 
         Returns None for a profile without a temperature setting.
@@ -346,7 +345,7 @@ class MetricData:
             return None
         return self.get(PROFILE_TO_SET_TEMPERATURE_METRIC_MAP[profile])
 
-    def get_fan_speed(self, profile: Profile) -> Optional[int]:
+    def get_fan_speed(self, profile: Profile) -> int | None:
         """Get the fan speed for the profile
 
         Returns None for a profile without a fan speed setting.
@@ -356,7 +355,7 @@ class MetricData:
         value = self.get(PROFILE_TO_SET_FAN_SPEED_METRIC_MAP[profile])
         return value if isinstance(value, int) else None
 
-    def get_rh_sensor_control(self, profile: Profile) -> Optional[bool]:
+    def get_rh_sensor_control(self, profile: Profile) -> bool | None:
         """Return true if the RH sensor control is enabled for the profile, false otherwise
 
         Returns None for a profile without an RH sensor control setting.
@@ -366,7 +365,7 @@ class MetricData:
         value = self.get(PROFILE_TO_SET_RH_SENSOR_CONTROL_METRIC_MAP[profile])
         return bool(value) if value is not None else None
 
-    def get_co2_sensor_control(self, profile: Profile) -> Optional[bool]:
+    def get_co2_sensor_control(self, profile: Profile) -> bool | None:
         """Return true if the CO2 sensor control is enabled for the profile, false otherwise
 
         Returns None for a profile without a CO2 sensor control setting.
@@ -376,7 +375,7 @@ class MetricData:
         value = self.get(PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP[profile])
         return bool(value) if value is not None else None
 
-    def get_remaining_profile_duration(self, profile: Profile) -> Optional[int]:
+    def get_remaining_profile_duration(self, profile: Profile) -> int | None:
         """Get the remaining duration of the profile in minutes
 
         Returns None for a profile without a timer, and for a running profile
@@ -400,7 +399,7 @@ class MetricData:
 
         return value
 
-    def get_timer_enabled(self, profile: Profile) -> Optional[bool]:
+    def get_timer_enabled(self, profile: Profile) -> bool | None:
         """Return true if the timer switch of the profile is on, false otherwise
 
         While the switch is off, the profile's timer doesn't count down.
@@ -413,18 +412,18 @@ class MetricData:
         return bool(value) if value is not None else None
 
     @property
-    def rh_sensor_manual_control_mode(self) -> Optional[bool]:
+    def rh_sensor_manual_control_mode(self) -> bool | None:
         """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
         enabled = self.get(SET_RH_SENSOR_CONTROL_MODE)
         return bool(enabled) if enabled is not None else None
 
     @property
-    def rh_sensor_limit(self) -> Optional[int]:
+    def rh_sensor_limit(self) -> int | None:
         """Return the RH sensor limit percentage (0-100). Only relevant if the RH sensor mode is set to 'manual'."""
         return self.get(SET_RH_SENSOR_CONTROL_LIMIT)
 
     @property
-    def co2_sensor_limit(self) -> Optional[int]:
+    def co2_sensor_limit(self) -> int | None:
         """Return the CO2 sensor ppm limit (500-2000)."""
         return self.get(SET_CO2_SENSOR_CONTROL_LIMIT)
 
@@ -477,8 +476,8 @@ class Alarm:
     nr: int
     code: int
     severity: "Severity"
-    first_date: Optional[datetime.date]
-    last_date: Optional[datetime.date]
+    first_date: datetime.date | None
+    last_date: datetime.date | None
     count: int
     activity: "Activity"
 
@@ -518,9 +517,7 @@ class Vallox(Client):
         """Fetch the metric data from the unit"""
         return MetricData(await self.fetch_metrics())
 
-    async def set_profile(
-        self, profile: Profile, duration: Optional[int] = None
-    ) -> None:
+    async def set_profile(self, profile: Profile, duration: int | None = None) -> None:
         """Set the profile of the unit
 
         :params:

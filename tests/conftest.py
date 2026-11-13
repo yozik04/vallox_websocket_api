@@ -1,6 +1,5 @@
 from pathlib import Path
 import struct
-from typing import Dict
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -48,7 +47,7 @@ def ws():
 def raw_table():
     """Build a raw read table response: big-endian 16-bit values, all 0 except `values`."""
 
-    def build(client: Client, values: Dict[str, int]) -> bytes:
+    def build(client: Client, values: dict[str, int]) -> bytes:
         offsets = {
             key: client.data_model.calculate_offset(address)
             for key, address in client.data_model.addresses.items()
