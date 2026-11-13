@@ -444,6 +444,7 @@ async def test_set_profile_with_stored_duration_without_time_limit(
 
     data = await vallox.fetch_metric_data()
     assert data.get(stored) == 65535
+    assert data.get_timer_duration(profile) == 65535
 
     await vallox.set_profile(profile)
 

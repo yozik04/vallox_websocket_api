@@ -411,6 +411,18 @@ class MetricData:
         value = self.get(PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP[profile])
         return bool(value) if value is not None else None
 
+    def get_timer_duration(self, profile: Profile) -> int | None:
+        """Get the duration setting of the profile's timer in minutes
+
+        65535 means no time limit.
+        Returns None for a profile without a timer.
+        """
+        if profile not in PROFILE_TO_SET_DURATION_METRIC_MAP:
+            return None
+
+        value = self.get(PROFILE_TO_SET_DURATION_METRIC_MAP[profile])
+        return value if isinstance(value, int) else None
+
     @property
     def rh_sensor_manual_control_mode(self) -> bool | None:
         """Return the RH sensor control mode (0 for automatic, 1 for manual)"""
@@ -670,6 +682,38 @@ class Vallox(Client):
         setting = PROFILE_TO_SET_CO2_SENSOR_CONTROL_METRIC_MAP[profile]
 
         await self.set_values({setting: enable})
+
+    async def set_timer_enabled(self, profile: Profile, enabled: bool) -> None:
+        """Switch the timer of the profile on or off
+
+        While the timer is off, the profile runs until another profile is
+        selected.
+        """
+        if profile not in PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Timer is not settable for profile: {profile}"
+            )
+        setting = PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP[profile]
+
+        await self.set_values({setting: 1 if enabled else 0})
+
+    async def set_timer_duration(self, profile: Profile, minutes: int) -> None:
+        """Set the duration setting of the profile's timer (1-65535 minutes)
+
+        65535 means no time limit.
+        """
+        if profile not in PROFILE_TO_SET_DURATION_METRIC_MAP:
+            raise ValloxInvalidInputException(
+                f"Timer duration is not settable for profile: {profile}"
+            )
+
+        if minutes < 1 or minutes > 65535:
+            raise ValloxInvalidInputException(
+                "Timer duration must be between 1 and 65535 minutes"
+            )
+        setting = PROFILE_TO_SET_DURATION_METRIC_MAP[profile]
+
+        await self.set_values({setting: minutes})
 
     async def set_rh_sensor_manual_control_mode(self, enable: bool) -> None:
         """Set the RH sensor control mode (0 for automatic, 1 for manual)"""
