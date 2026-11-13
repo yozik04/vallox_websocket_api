@@ -3,7 +3,7 @@ import struct
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from websockets.client import WebSocketClientProtocol
+from websockets.asyncio.client import ClientConnection
 
 from vallox_websocket_api import Client, Vallox
 
@@ -36,11 +36,11 @@ async def vallox():
 
 @pytest.fixture
 def ws():
-    with patch("websockets.client.connect") as connect:
-        protocol_mock = AsyncMock(spec=WebSocketClientProtocol)
-        connect.return_value.__aenter__.side_effect = protocol_mock
+    with patch("vallox_websocket_api.client.websocket_connect") as connect:
+        connection = AsyncMock(spec=ClientConnection)
+        connect.return_value.__aenter__.return_value = connection
 
-        yield protocol_mock.return_value
+        yield connection
 
 
 @pytest.fixture

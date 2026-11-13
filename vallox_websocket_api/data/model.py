@@ -46,29 +46,26 @@ class DataModel:
 
     @property
     def is_valid(self) -> bool:
-        try:
-            assert self._constants is not None, "Constants not loaded"
-            assert self._buffer_ranges is not None, "Buffer ranges not initialized"
-
-            assert len(self._buffer_ranges) > 0, "No buffer ranges defined"
-
-            offset = self.calculate_offset(0)
-            if offset is None:
-                return False
-        except (KeyError, AssertionError):
+        if not self._constants or not self._buffer_ranges:
             return False
 
-        return True
+        try:
+            return self.calculate_offset(0) is not None
+        except KeyError:
+            return False
 
     async def read_model_from_unit(self, url) -> None:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as response:
+                async with session.get(
+                    url, timeout=aiohttp.ClientTimeout(total=5)
+                ) as response:
                     data = await response.text()
 
                     self._constants = self._parse_js_file(data)
 
-                    assert self.is_valid, "Invalid model"
+                    if not self.is_valid:
+                        raise ValueError("Invalid model")
         except Exception as ex:
             raise DataModelReadException(f"Failed to read model from {url}") from ex
 
@@ -79,7 +76,8 @@ class DataModel:
             )
             self._constants = self._parse_js_file(data)
 
-            assert self.is_valid, "Invalid model"
+            if not self.is_valid:
+                raise ValueError("Invalid model")
         except Exception as ex:
             raise DataModelReadException(f"Failed to read model from {js_file}") from ex
 
@@ -140,12 +138,14 @@ class DataModel:
             )
             self._constants = json.loads(data)
 
-            assert isinstance(self._constants, dict), "Invalid bundled model format"
+            if not isinstance(self._constants, dict):
+                raise ValueError("Invalid bundled model format")
 
             # Build buffer ranges from the loaded constants
             self._buffer_ranges = BufferRanges.from_constants(self._constants)
 
-            assert self.is_valid, "Invalid model"
+            if not self.is_valid:
+                raise ValueError("Invalid model")
         except Exception as ex:
             raise DataModelReadException(
                 f"Failed to read local model {version}"
