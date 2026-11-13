@@ -184,6 +184,19 @@ digital-input mode). The fan-speed, humidity-control, and CO2-control helpers
 remain specific to HOME, AWAY, and BOOST: FIREPLACE and EXTRA have separate supply
 and extract fans, and AUTO has no independent profile settings.
 
+### Timer settings
+
+```python
+async def run():
+    data = await client.fetch_metric_data()
+    data.get_timer_enabled(Profile.BOOST) # True if the timer switch is on
+    data.get_timer_duration(Profile.BOOST) # Duration setting in minutes
+    await client.set_timer_enabled(Profile.BOOST, False)
+    await client.set_timer_duration(Profile.BOOST, 45) # 1 to 65535 minutes
+```
+
+Profiles without a timer: getters return `None`, setters raise `ValloxInvalidInputException`.
+
 ## Metrics
 
 Reading metrics and setting values
