@@ -2,7 +2,12 @@ from unittest import mock
 
 import pytest
 
-from vallox_websocket_api import MetricData, Profile, Vallox
+from vallox_websocket_api import (
+    MetricData,
+    Profile,
+    Vallox,
+    ValloxInvalidInputException,
+)
 
 TIMERS = ["A_CYC_BOOST_TIMER", "A_CYC_FIREPLACE_TIMER", "A_CYC_EXTRA_TIMER"]
 
@@ -380,6 +385,14 @@ async def test_set_profile_with_duration_switches_timer_on(
         timer: 45,
         switch: 1,
     }
+
+
+@pytest.mark.parametrize("duration", [-1, 65536, "invalid"])
+async def test_set_profile_rejects_invalid_duration(vallox: Vallox, ws, duration):
+    with pytest.raises(ValloxInvalidInputException):
+        await vallox.set_profile(Profile.BOOST, duration)
+
+    ws.send.assert_not_called()
 
 
 @pytest.mark.parametrize("profile, timer, switch", TIMED_PROFILES)

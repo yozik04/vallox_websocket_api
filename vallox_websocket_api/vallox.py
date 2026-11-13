@@ -525,12 +525,9 @@ class Vallox(Client):
 
         :params:
           :profile: One of Profile.* values
-          :duration: timeout in minutes for the FIREPLACE, BOOST and EXTRA profiles.
-            None or 0 means the duration configured on the unit, which only runs
-            out while the profile's timer switch is on.
-            65535 means no time out, regardless of the timer switch.
-            Any other duration also switches the profile's timer on, so that
-            the profile ends after that duration.
+          :duration: Minutes for timed profiles. None or 0 uses the configured
+            duration (counts down only if its timer switch is on); 65535 runs
+            indefinitely. Other durations enable the timer switch.
         """
         metric_data_cache = None
 
@@ -546,24 +543,32 @@ class Vallox(Client):
 
         # A timed profile runs for the given duration, or else for the one
         # stored on the unit.
-        set_duration = None
-        if duration is not None and 0 <= int(duration) <= 65535:
-            set_duration = int(duration)
+        try:
+            set_duration = int(duration) if duration is not None else None
+        except (TypeError, ValueError, OverflowError) as ex:
+            raise ValloxInvalidInputException("Invalid profile duration") from ex
+        if set_duration is not None and not 0 <= set_duration <= 65535:
+            raise ValloxInvalidInputException(
+                "Profile duration must be between 0 and 65535"
+            )
+
         dur = 0
         if profile in PROFILE_TO_SET_DURATION_METRIC_MAP:
-            dur = set_duration or await lazy_fetch_metric_value(
-                PROFILE_TO_SET_DURATION_METRIC_MAP[profile]
-            )
+            if set_duration is None or set_duration == 0:
+                dur = await lazy_fetch_metric_value(
+                    PROFILE_TO_SET_DURATION_METRIC_MAP[profile]
+                )
+            else:
+                dur = set_duration
 
         # The timer doesn't count down while its switch is off, so an explicit
         # duration also switches it on, as in the Modbus manual's example.
-        timer_switch: Dict[str, int] = {}
-        if (
-            set_duration
-            and set_duration != 65535
-            and profile in PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP
-        ):
-            timer_switch = {PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP[profile]: 1}
+        timer_switch_key = PROFILE_TO_SET_TIMER_ENABLED_METRIC_MAP.get(profile)
+        timer_switch = (
+            {timer_switch_key: 1}
+            if set_duration not in (None, 0, 65535) and timer_switch_key
+            else {}
+        )
 
         if profile == Profile.HOME:
             logger.info("Setting unit to HOME profile")

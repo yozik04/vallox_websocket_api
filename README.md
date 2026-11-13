@@ -176,13 +176,7 @@ async def run():
 asyncio.run(run())
 ```
 
-BOOST, FIREPLACE and EXTRA are timed profiles. Each has a timer that counts down in minutes, and a timer switch on the unit, labelled "Timer" in the web UI. While the switch is off, the timer doesn't count down. The `duration` of `set_profile()` works like this:
-
-* `None` or 0: the duration configured on the unit. The profile only ends after it while the unit's timer switch is on. A configured duration of 65535 means no time limit.
-* 1 to 65534: the profile ends after that many minutes. This also switches the profile's timer on.
-* 65535: the profile runs without a time limit, regardless of the timer switch.
-
-If more than one timed profile is active, the unit uses EXTRA, then FIREPLACE, then BOOST, and `data.profile` reports the same. `data.get_timer_enabled(profile)` reads the timer switch. `data.get_remaining_profile_duration(profile)` returns `None` while the profile runs without a time limit.
+BOOST, FIREPLACE and EXTRA are timed profiles. `set_profile(profile, duration)` uses the unit's configured duration for `None` or 0, enables the timer for 1-65534 minutes, and runs indefinitely for 65535 without changing the timer switch. The configured duration counts down only while the switch is on. If multiple timed profiles are active, priority is EXTRA, FIREPLACE, then BOOST. Read the switch with `data.get_timer_enabled(profile)`; `data.get_remaining_profile_duration(profile)` returns `None` for a running profile with the timer disabled or unlimited.
 
 `set_temperature()` and `MetricData.get_temperature_setting()` support HOME,
 AWAY, BOOST, FIREPLACE (called Custom in the Web UI), and EXTRA (the programmable
