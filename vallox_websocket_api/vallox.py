@@ -779,6 +779,21 @@ class Vallox(Client):
             }
         )
 
+    async def set_date_time(self, dt: datetime.datetime) -> None:
+        """Set the unit's clock. Time and date are written separately, like the web UI."""
+        assert isinstance(dt, datetime.datetime)
+        if not 2000 <= dt.year <= 2099:
+            raise ValloxInvalidInputException("Year must be between 2000 and 2099")
+
+        await self.set_values({"A_CYC_MINUTE": dt.minute, "A_CYC_HOUR": dt.hour})
+        await self.set_values(
+            {
+                "A_CYC_DAY": dt.day,
+                "A_CYC_MONTH": dt.month,
+                "A_CYC_YEAR": dt.year - 2000,
+            }
+        )
+
     async def resolve_alarm(self, alarm: Alarm) -> None:
         """Resolve an alarm"""
 

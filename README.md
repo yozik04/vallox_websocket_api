@@ -263,6 +263,7 @@ asyncio.run(run())
 Textual values will be converted to integers before sending to the unit.
 ```python
 import asyncio
+import datetime
 from vallox_websocket_api import Profile, Vallox
 
 client = Vallox('192.168.9.106')
@@ -287,6 +288,9 @@ async def run():
 
     # Setting Boost profile target temperature
     await client.set_values({'A_CYC_BOOST_AIR_TEMP_TARGET': 15})
+
+    # Setting the unit's date and time
+    await client.set_date_time(datetime.datetime.now())
 
     # Setting Boost profile timer
     await client.set_values({
