@@ -65,6 +65,9 @@ SET_RH_SENSOR_CONTROL_MODE = "A_CYC_RH_LEVEL_MODE"
 SET_RH_SENSOR_CONTROL_LIMIT = "A_CYC_RH_BASIC_LEVEL"
 SET_CO2_SENSOR_CONTROL_LIMIT = "A_CYC_CO2_THRESHOLD"
 
+_CYC_MODE_ON = 0  # C_CYC_MODE_NORMAL
+_CYC_MODE_OFF = 5  # C_CYC_MODE_OFF
+
 
 class CellState(IntEnum):
     HEAT_RECOVERY = 0  # C_CYC_CELL_STATE_HEATRECO
@@ -335,6 +338,25 @@ class MetricData:
             return CellState(state)
         except ValueError:
             return None
+
+    @property
+    def power_on(self) -> bool | None:
+        """Return False if the unit is switched off, True otherwise
+
+        Only A_CYC_MODE 5 means off. Other modes, such as the test and
+        self-test modes, count as on, as in the web UI.
+        """
+        mode = self.get("A_CYC_MODE")
+        return mode != _CYC_MODE_OFF if mode is not None else None
+
+    @property
+    def bypass_locked(self) -> bool | None:
+        """Return True if the bypass is locked to the winter position, False otherwise
+
+        While locked, the heat recovery cell isn't bypassed.
+        """
+        locked = self.get("A_CYC_BYPASS_LOCKED")
+        return bool(locked) if locked is not None else None
 
     def get_temperature_setting(self, profile: Profile) -> float | None:
         """Get the temperature setting for the profile
@@ -766,6 +788,24 @@ class Vallox(Client):
                 "Mode must be a DefrostMode enum value (0 or 1)"
             )
         await self.set_values({"A_CYC_DEFROST_MODE": mode.value})
+
+    async def set_power_on(self, on: bool) -> None:
+        """Switch the unit on (True) or off (False)
+
+        Writes A_CYC_MODE 0 or 5, as the web UI does.
+        """
+        # Unlike other flags, the register values invert under truthiness:
+        # set_power_on(5), meant as off, would switch the unit on, and
+        # set_power_on(0), meant as on, would switch it off.
+        #
+        # So accept only bools as a safety net.
+        if not isinstance(on, bool):
+            raise ValloxInvalidInputException("Power must be True (on) or False (off)")
+        await self.set_values({"A_CYC_MODE": _CYC_MODE_ON if on else _CYC_MODE_OFF})
+
+    async def set_bypass_locked(self, locked: bool) -> None:
+        """Lock the bypass to the winter position (True) or release it (False)"""
+        await self.set_values({"A_CYC_BYPASS_LOCKED": 1 if locked else 0})
 
     async def set_filter_change_date(self, _date: date) -> None:
         """Set the next filter change date to today"""
