@@ -1,6 +1,6 @@
 import pytest
 
-from vallox_websocket_api import MetricData, Vallox, ValloxInvalidInputException
+from vallox_websocket_api import MetricData, Vallox
 
 
 def _written_values(vallox: Vallox, payload: bytes) -> dict[str, int]:
@@ -24,34 +24,31 @@ def _written_values(vallox: Vallox, payload: bytes) -> dict[str, int]:
         (None, None),
     ],
 )
-def test_power_on(mode, expected):
-    assert MetricData({"A_CYC_MODE": mode}).power_on is expected
+def test_is_switched_on(mode, expected):
+    assert MetricData({"A_CYC_MODE": mode}).is_switched_on is expected
 
 
-def test_power_on_missing():
-    assert MetricData({}).power_on is None
+def test_is_switched_on_missing():
+    assert MetricData({}).is_switched_on is None
 
 
-async def test_power_on_from_unit(vallox: Vallox, ws, raw_table):
+async def test_is_switched_on_from_unit(vallox: Vallox, ws, raw_table):
     ws.recv.return_value = raw_table(vallox, {"A_CYC_MODE": 5})
 
     data = await vallox.fetch_metric_data()
 
-    assert data.power_on is False
+    assert data.is_switched_on is False
 
 
-@pytest.mark.parametrize("on, written", [(True, 0), (False, 5)])
-async def test_set_power_on(vallox: Vallox, ws, on, written):
-    await vallox.set_power_on(on)
+async def test_switch_on(vallox: Vallox, ws):
+    await vallox.switch_on()
 
     ws.send.assert_called_once()
-    assert _written_values(vallox, ws.send.call_args.args[0]) == {"A_CYC_MODE": written}
+    assert _written_values(vallox, ws.send.call_args.args[0]) == {"A_CYC_MODE": 0}
 
 
-# Raw register values are rejected: 5 is truthy but means off, 0 is falsy but means on.
-@pytest.mark.parametrize("on", [0, 1, 5, "off", None])
-async def test_set_power_on_rejects_non_bool(vallox: Vallox, ws, on):
-    with pytest.raises(ValloxInvalidInputException):
-        await vallox.set_power_on(on)
+async def test_switch_off(vallox: Vallox, ws):
+    await vallox.switch_off()
 
-    ws.send.assert_not_called()
+    ws.send.assert_called_once()
+    assert _written_values(vallox, ws.send.call_args.args[0]) == {"A_CYC_MODE": 5}

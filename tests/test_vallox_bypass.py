@@ -11,20 +11,20 @@ def _written_values(vallox: Vallox, payload: bytes) -> dict[str, int]:
 
 
 @pytest.mark.parametrize("locked, expected", [(1, True), (0, False), (None, None)])
-def test_bypass_locked(locked, expected):
-    assert MetricData({"A_CYC_BYPASS_LOCKED": locked}).bypass_locked is expected
+def test_is_bypass_locked(locked, expected):
+    assert MetricData({"A_CYC_BYPASS_LOCKED": locked}).is_bypass_locked is expected
 
 
-def test_bypass_locked_missing():
-    assert MetricData({}).bypass_locked is None
+def test_is_bypass_locked_missing():
+    assert MetricData({}).is_bypass_locked is None
 
 
-async def test_bypass_locked_from_unit(vallox: Vallox, ws, raw_table):
+async def test_is_bypass_locked_from_unit(vallox: Vallox, ws, raw_table):
     ws.recv.return_value = raw_table(vallox, {"A_CYC_BYPASS_LOCKED": 1})
 
     data = await vallox.fetch_metric_data()
 
-    assert data.bypass_locked is True
+    assert data.is_bypass_locked is True
 
 
 @pytest.mark.parametrize("locked, written", [(True, 1), (False, 0)])

@@ -206,8 +206,9 @@ Profiles without a timer: getters return `None`, setters raise `ValloxInvalidInp
 ```python
 async def run():
     data = await client.fetch_metric_data()
-    data.power_on # False if the unit is switched off
-    await client.set_power_on(False) # Switch the unit off
+    data.is_switched_on # False if the unit is switched off
+    await client.switch_off()
+    await client.switch_on()
 ```
 
 ## Bypass lock
@@ -215,7 +216,7 @@ async def run():
 ```python
 async def run():
     data = await client.fetch_metric_data()
-    data.bypass_locked # True if the bypass is locked to the winter position
+    data.is_bypass_locked # True if the bypass is locked to the winter position
     await client.set_bypass_locked(True)
 ```
 

@@ -340,7 +340,7 @@ class MetricData:
             return None
 
     @property
-    def power_on(self) -> bool | None:
+    def is_switched_on(self) -> bool | None:
         """Return False if the unit is switched off, True otherwise
 
         Only A_CYC_MODE 5 means off. Other modes, such as the test and
@@ -350,7 +350,7 @@ class MetricData:
         return mode != _CYC_MODE_OFF if mode is not None else None
 
     @property
-    def bypass_locked(self) -> bool | None:
+    def is_bypass_locked(self) -> bool | None:
         """Return True if the bypass is locked to the winter position, False otherwise
 
         While locked, the heat recovery cell isn't bypassed.
@@ -789,19 +789,13 @@ class Vallox(Client):
             )
         await self.set_values({"A_CYC_DEFROST_MODE": mode.value})
 
-    async def set_power_on(self, on: bool) -> None:
-        """Switch the unit on (True) or off (False)
+    async def switch_on(self) -> None:
+        """Switch the unit on"""
+        await self.set_values({"A_CYC_MODE": _CYC_MODE_ON})
 
-        Writes A_CYC_MODE 0 or 5, as the web UI does.
-        """
-        # Unlike other flags, the register values invert under truthiness:
-        # set_power_on(5), meant as off, would switch the unit on, and
-        # set_power_on(0), meant as on, would switch it off.
-        #
-        # So accept only bools as a safety net.
-        if not isinstance(on, bool):
-            raise ValloxInvalidInputException("Power must be True (on) or False (off)")
-        await self.set_values({"A_CYC_MODE": _CYC_MODE_ON if on else _CYC_MODE_OFF})
+    async def switch_off(self) -> None:
+        """Switch the unit off"""
+        await self.set_values({"A_CYC_MODE": _CYC_MODE_OFF})
 
     async def set_bypass_locked(self, locked: bool) -> None:
         """Lock the bypass to the winter position (True) or release it (False)"""
