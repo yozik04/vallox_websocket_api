@@ -201,6 +201,25 @@ async def run():
 
 Profiles without a timer: getters return `None`, setters raise `ValloxInvalidInputException`.
 
+## Power
+
+```python
+async def run():
+    data = await client.fetch_metric_data()
+    data.is_switched_on # False if the unit is switched off
+    await client.switch_off()
+    await client.switch_on()
+```
+
+## Bypass lock
+
+```python
+async def run():
+    data = await client.fetch_metric_data()
+    data.is_bypass_locked # True if the bypass is locked to the winter position
+    await client.set_bypass_locked(True)
+```
+
 ## Metrics
 
 Reading metrics and setting values
