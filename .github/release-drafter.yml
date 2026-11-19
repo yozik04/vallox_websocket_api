@@ -1,4 +1,9 @@
+name-template: '$RESOLVED_VERSION'
+tag-template: '$RESOLVED_VERSION'
+change-template: '* $TITLE by @$AUTHOR in $URL'
+sort-direction: ascending
 template: |
-  ## What’s Changed
-
+  ## What's Changed
   $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_VERSION
